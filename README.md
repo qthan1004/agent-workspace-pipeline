@@ -34,6 +34,34 @@ Cần **Node.js 22+**. Bạn đã cài/đăng nhập nền tảng AI muốn dùn
 
 ### Bước 2 — Copy một lệnh phù hợp
 
+#### Lệnh npm/npx ngắn — dùng sau khi package được publish lên npm
+
+**Hiện package chưa có trên npm registry.** Các lệnh theo tên dưới đây dùng được sau khi maintainer publish; để cài ngay, dùng [GitHub Release](#dùng-ngay-qua-github-release) ở phần tiếp theo.
+
+**Một lệnh init đủ cả bốn nền tảng và 7 skills dùng chung:**
+
+~~~sh
+npx --yes agent-workspace-pipeline@latest init
+~~~
+
+**Chỉ Codex + Claude:**
+
+~~~sh
+npx --yes agent-workspace-pipeline@latest init --with codex,claude
+~~~
+
+**Dùng npm thay cho npx**, vẫn init bằng một lệnh:
+
+~~~sh
+npm exec --yes --package=agent-workspace-pipeline@latest -- agent-workspace init
+~~~
+
+Thêm --with codex,claude hoặc danh sách nền tảng cần dùng ở cuối lệnh npm. npx/npm exec tải và chạy CLI; không cần cài global trước. Muốn có binary ngắn dùng ở mọi project, xem [cài CLI global](#cài-cli-global-nếu-cần).
+
+Người cài package public không cần npm login. Login chỉ cần cho maintainer phát hành; xem [publish lần đầu](docs/publishing.md#publish-lần-đầu). Kiểm tra package đã có trên registry bằng npm view agent-workspace-pipeline version; kết quả phải trả version thực tế trước khi dùng các lệnh ngắn này.
+
+#### Dùng ngay qua GitHub Release
+
 **Dùng Codex + Claude:**
 
 ~~~sh
@@ -69,6 +97,13 @@ Vẫn ở terminal của project, chạy:
 ~~~sh
 npx --yes https://github.com/qthan1004/agent-workspace-pipeline/releases/download/v0.2.1/agent-workspace-pipeline-0.2.1.tgz doctor
 npx --yes https://github.com/qthan1004/agent-workspace-pipeline/releases/download/v0.2.1/agent-workspace-pipeline-0.2.1.tgz skills list
+~~~
+
+Nếu đã cài từ npm registry sau khi package được publish, dùng lệnh ngắn tương ứng:
+
+~~~sh
+npx --yes agent-workspace-pipeline@latest doctor
+npx --yes agent-workspace-pipeline@latest skills list
 ~~~
 
 doctor trả JSON có **"ok": true**; skills list có 7 tên: analyze, interview, pipeline, plan, review, tdd, wiki-maintenance. Finding WIKI_NOT_RELEASED là thông tin bình thường ở project mới: các trang wiki mẫu đang là draft, chưa được xác minh để dùng làm kiến thức chính thức.
@@ -269,11 +304,14 @@ Agent có thể tự chạy setup khi cần rồi kiểm tra doctor. Đường d
 
 ### Khi package đã publish lên npm registry
 
-Hiện dùng URL GitHub Release phía trên. Sau khi npm view agent-workspace-pipeline version trả về bản thực tế, có thể dùng tên:
+Lệnh init một bước bằng npx/npm exec nằm ngay ở [bước 2](#bước-2--copy-một-lệnh-phù-hợp). Sau khi npm view agent-workspace-pipeline version trả về bản thực tế, cũng có thể cài CLI global bằng tên package:
 
 ~~~sh
-npx --yes agent-workspace-pipeline@latest init --with codex,claude
+npm install --global agent-workspace-pipeline@latest
+agent-workspace init
 ~~~
+
+init mặc định cài đủ bốn nền tảng; thêm --with để chọn nền tảng cần dùng. Chỉ cần init một lần cho project, sau đó giao việc bằng chat như mục 4.
 
 Tên package là agent-workspace-pipeline; binary là agent-workspace. Không chạy npx agent-workspace trong project chưa cài dependency này: tên đó trên npm thuộc một dự án khác.
 

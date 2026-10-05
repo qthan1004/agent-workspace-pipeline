@@ -53,6 +53,8 @@ GitHub Actions trong .github/workflows/ci.yml kiểm tra Node 22/24 trên Window
 
 ## Publish lần đầu
 
+**Trạng thái hiện tại: chưa publish lên npm registry.** Lệnh npx theo tên package trong README chỉ dùng được sau khi hoàn tất phần này. GitHub Release vẫn cài được qua URL npm/npx public.
+
 Registry thật yêu cầu một npm account có quyền publish. Login là thao tác của chủ tài khoản trong terminal:
 
 ~~~powershell
@@ -75,6 +77,16 @@ npx --yes --package agent-workspace-pipeline@0.2.1 agent-workspace doctor
 ~~~
 
 User sau đó cài global bằng npm install --global agent-workspace-pipeline hoặc dùng npx như README. Không cần tarball hay path trên máy maintainer.
+
+Sau khi xác minh bản publish thành công, dùng các lệnh onboarding ngắn:
+
+~~~sh
+npx --yes agent-workspace-pipeline@latest init
+npx --yes agent-workspace-pipeline@latest init --with codex,claude
+npm exec --yes --package=agent-workspace-pipeline@latest -- agent-workspace init
+~~~
+
+Lệnh đầu và cuối init đủ bốn nền tảng; lệnh giữa chọn Codex + Claude. Đây là các lựa chọn thay thế, chỉ cần chạy một lệnh phù hợp. Người cài package public không cần đăng nhập npm. Cập nhật trạng thái phân phối trong README và tài liệu này sau khi registry trả về bản thật; chỉ thay URL GitHub mặc định khi lệnh npm/npx theo tên đã được kiểm tra từ workspace/cache mới.
 
 ## Phát hành version tiếp theo
 
