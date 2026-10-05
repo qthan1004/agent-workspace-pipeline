@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
 import { capture } from '../src/process.js';
 
@@ -28,6 +28,17 @@ assert.ok((await fs.readFile(path.join(repo, 'wiki/INDEX.md'), 'utf8')).includes
 assert.equal((await command('doctor')).ok, true);
 await fs.copyFile(path.join(packed, 'examples/task.md'), path.join(repo, '.agent/tasks/DEMO-1.md'));
 await command('task', 'validate', 'DEMO-1', '--draft');
+const pending = await capture(process.execPath, [cli, 'task', 'approve', 'DEMO-1', '--by', 'fixture', '--repo', repo, '--home', home, '--json'], root);
+assert.notEqual(pending.code, 0, 'A pending shipped example must not approve.');
+assert.equal(await fs.stat(path.join(repo, 'src')).catch(() => null), null);
+assert.equal(await fs.stat(path.join(repo, 'test')).catch(() => null), null);
+const { frontmatter, markdown } = await import(pathToFileURL(path.join(packed, 'src/io.js')).href);
+const taskFile = path.join(repo, '.agent/tasks/DEMO-1.md');
+const demoTask = frontmatter(await fs.readFile(taskFile, 'utf8'));
+demoTask.metadata.discovery.status = 'ready';
+demoTask.metadata.discovery.flow = 'New greet helper -> direct demo tests; inspected src/test absent, no existing callers or shared state.';
+demoTask.metadata.discovery.sources.push({ kind: 'source', reference: 'Packed smoke inventory: src/test absent.', summary: 'No existing helper/tests or conflicting consumers.' });
+await fs.writeFile(taskFile, markdown(demoTask.metadata, demoTask.body));
 await command('task', 'approve', 'DEMO-1', '--by', 'smoke-test-authorization-fixture');
 await command('prepare', 'DEMO-1', '--brief');
 await fs.mkdir(path.join(repo, 'src'), { recursive: true });

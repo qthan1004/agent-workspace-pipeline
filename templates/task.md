@@ -3,6 +3,13 @@ id: "{{ID}}"
 status: draft
 risk: medium
 version: 1
+discovery:
+  status: pending
+  outcome: TODO requested observable outcome
+  sources: []
+  flow: TODO inspected entry points, state owner, callers and alternate flows
+  decisions: []
+  open_questions: []
 paths: []
 symbols: []
 tags: []
@@ -27,10 +34,10 @@ dod:
 TODO
 
 # User Intent
-TODO
+TODO preserve the user's request and boundaries, with references to conversation or supplied plans. Agent implementation choices belong under Decisions, never attributed to the user.
 
 # Decisions
-TODO
+TODO ordered implementation steps and their checks. Record material choice provenance in discovery.decisions: user (actual reply), source (inspected convention/contract), or agent (implementation judgment within agreed behavior). No unresolved product choice hidden as a step.
 
 # Constraints
 TODO

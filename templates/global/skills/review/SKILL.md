@@ -1,17 +1,17 @@
 ---
 name: review
-description: Independently review an implementation against its approved contract, current source and evidence, or evaluate existing review findings.
+description: Independently check original intent, implementation and technical docs against current source and evidence, or evaluate incoming review feedback before fixing it.
 metadata:
   agent_workspace:
-    tags: [review, reviewer, feedback]
+    tags: [review, review-me, reviewer, feedback, mr-review-fix]
 ---
 
-# Fresh independent review
+# Review intent and implementation
 
-Use the contract, current diff/source, receipt and relevant rules/wiki in fresh context. Challenge the result rather than inheriting the executor's conclusions. Verify artifact substance and current caller/flow/contract impact; a narrow diff is insufficient for shared behavior.
+For independent review, use fresh context and 'review prepare' with original request/plan references, contract, current source/diff and receipt. MUST compare User Intent and discovery decisions to their actual sources first. The executor's task can misstate the request. Missing original evidence or unresolved intent blocks pass; ready/approval labels do not settle semantics.
 
-Check every acceptance criterion, DoD, required evidence kind, meaningful regression and unresolved uncertainty. Failed/skipped/user-owned checks are not passes. Bind review output to the source_digest and contract_sha256 supplied by 'review prepare'.
+Inspect invariant/state ownership, relevant direct/indirect callers and alternate flows. Check every acceptance/DoD, artifact substance, required evidence and regressions. A narrow diff, self-written tests, one screenshot or process success alone cannot prove the requested flow. Failed/skipped/unavailable required checks are not passes. Check technical docs against implemented behavior, including preserved boundaries and known limitations.
 
-Treat existing reviewer suggestions as hypotheses. Cross-check relevant usages before changing shared defaults/signatures, keep unaffected baseline behavior and place context-dependent choices at the actual invariant owner. Avoid project/payment assumptions in generic reviews.
+For PR/MR feedback or "review me"/"fix review feedback", read [references/review-feedback.md](references/review-feedback.md). Suggestions are hypotheses, not authority to amend intent.
 
-Record actionable findings with evidence, or a passed review with exact verification scope. The executor may perform mechanical fixes within scope; semantic changes require renewed authorization. Any source change invalidates the previous review.
+Return actionable findings with source evidence, consequence and smallest in-scope correction. Pass identifies actual verification scope and exact source_digest/contract_sha256. Mechanical fixes can proceed within authority; semantic expansion requires clarification. Code changes invalidate prior review. Never impersonate an independent reviewer without a fresh reviewer/context.

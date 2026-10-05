@@ -34,6 +34,7 @@ async function approved(f, id = 'DEMO-1', edit = () => {}) {
   await api.newTask(id, f.options);
   const original = await readTask(f.workspace, id);
   const metadata = { ...original.metadata, risk: 'low', paths: ['src/value.mjs'], tags: ['regression'], expected_write_scope: ['src/**'], acceptance_criteria: [{ id: 'AC1', description: 'The helper returns the requested value.' }], dod: [{ id: 'D1', criterion: 'Requested behavior and change surface verified.', acceptance: ['AC1'], evidence: ['E4', 'E5'] }] };
+  metadata.discovery = { status: 'ready', outcome: 'Return the requested value.', sources: [{ kind: 'conversation', reference: 'Fixture request', summary: 'Add a private value helper.' }, { kind: 'source', reference: 'Fixture empty source inventory', summary: 'No existing helper or callers.' }], flow: 'New private value helper -> direct consumer test; no existing state or alternate callers.', decisions: [{ decision: 'Use an ESM helper.', basis: 'agent', reference: 'Private Node fixture implementation choice.' }], open_questions: [] };
   edit(metadata);
   const body = sections.map((section) => '# ' + section + '\n' + (section === 'Goal' ? 'Implement and verify the value helper.' : 'Concrete agreed constraints; frontmatter defines canonical checks.')).join('\n\n');
   await f.write('.agent/tasks/' + id + '.md', markdown(metadata, body));
@@ -58,6 +59,50 @@ async function passingReceipt(f, id) {
   return { receiptPath, receipt: JSON.parse(await fs.readFile(receiptPath, 'utf8')) };
 }
 
+test('execution rejects a legacy contract without recorded intent discovery but permits inspection and revision', async (t) => {
+  const f = await fixture(t), id = await approved(f, 'LEGACY');
+  const task = await readTask(f.workspace, id);
+  delete task.metadata.discovery;
+  await f.write('.agent/tasks/' + id + '.md', markdown(task.metadata, task.body));
+  assert.ok(await api.showTask(id, f.options));
+  assert.equal((await api.prepare(id, { ...f.options, draft: true })).manifest.task.id, id);
+  await rejects(api.approveTask(id, { ...f.options, by: 'agent' }), 'DISCOVERY_NOT_READY');
+  await rejects(api.prepare(id, f.options), 'DISCOVERY_NOT_READY');
+  await rejects(api.runTask(id, { ...f.options, dryRun: true }), 'DISCOVERY_NOT_READY');
+  const from = path.join(f.directory, 'legacy-revision.md');
+  await fs.writeFile(from, markdown(task.metadata, task.body));
+  assert.equal((await api.updateTask(id, { ...f.options, from })).status, 'draft');
+});
+for (const scenario of ['pending', 'open-question', 'missing-request', 'missing-source', 'blank-flow', 'unsourced-decision']) {
+  test('discovery gate rejects ' + scenario + ' even with an approver flag', async (t) => {
+    const f = await fixture(t), id = await approved(f, 'DISCOVERY');
+    const task = await readTask(f.workspace, id);
+    const discovery = task.metadata.discovery;
+    if (scenario === 'pending') discovery.status = 'pending';
+    if (scenario === 'open-question') discovery.open_questions = ['Visual mockup or integrated application behavior?'];
+    if (scenario === 'missing-request') discovery.sources = discovery.sources.filter((source) => source.kind === 'source');
+    if (scenario === 'missing-source') discovery.sources = discovery.sources.filter((source) => source.kind === 'conversation');
+    if (scenario === 'blank-flow') discovery.flow = '  ';
+    if (scenario === 'unsourced-decision') discovery.decisions[0].reference = '  ';
+    await f.write('.agent/tasks/' + id + '.md', markdown(task.metadata, task.body));
+    await rejects(api.approveTask(id, { ...f.options, by: 'user' }), 'DISCOVERY_NOT_READY');
+    await rejects(api.runTask(id, { ...f.options, dryRun: true }), 'DISCOVERY_NOT_READY');
+    assert.equal((await api.prepare(id, { ...f.options, draft: true })).manifest.task.id, id);
+    assert.equal(await exists(path.join(f.options.repo, '.agent/execution.lock')), false);
+  });
+}
+test('discovery provenance is schema-checked and changing a decided outcome invalidates approval', async (t) => {
+  const f = await fixture(t), id = await approved(f, 'PROVENANCE');
+  const task = await readTask(f.workspace, id);
+  task.metadata.discovery.decisions[0].basis = 'guess';
+  await f.write('.agent/tasks/' + id + '.md', markdown(task.metadata, task.body));
+  await rejects(api.approveTask(id, { ...f.options, by: 'user' }), 'SCHEMA_INVALID');
+  task.metadata.discovery.decisions[0].basis = 'agent';
+  task.metadata.discovery.outcome = 'A different requested outcome.';
+  await f.write('.agent/tasks/' + id + '.md', markdown(task.metadata, task.body));
+  await rejects(api.prepare(id, f.options), 'APPROVAL_STALE');
+});
+
 test('bootstrap preserves user work and is idempotent', async (t) => {
   const f = await fixture(t);
   await f.write('AGENTS.md', 'User instructions\n');
@@ -70,6 +115,37 @@ test('bootstrap preserves user work and is idempotent', async (t) => {
   assert.equal(await fs.readFile(path.join(f.options.repo, 'AGENTS.md'), 'utf8'), instructions);
   assert.equal(await fs.readFile(path.join(f.options.repo, '.agent/CORE.md'), 'utf8'), 'User invariant\n');
   assert.equal((await api.doctor(f.options)).ok, true);
+});
+test('refresh updates recognized shipped defaults, preserves custom knowledge and respects active execution', async (t) => {
+  const f = await fixture(t);
+  const oldCore = (await fs.readFile(path.join(root, 'test/fixtures/core-0.2.1.md'), 'utf8')).replaceAll('\r\n', '\n');
+  const currentCore = await fs.readFile(path.join(root, 'templates/global/core/CORE.md'), 'utf8');
+  const globalCore = path.join(f.options.home, 'core/CORE.md');
+  const oldInterview = await fs.readFile(path.join(root, 'test/fixtures/interview-0.2.1.md'), 'utf8');
+  const currentInterview = await fs.readFile(path.join(root, 'templates/global/skills/interview/SKILL.md'), 'utf8');
+  await fs.writeFile(path.join(f.options.home, 'skills/interview/SKILL.md'), oldInterview);
+  await f.write('.agent/skills/plan/SKILL.md', oldInterview.replace('name: interview', 'name: plan'));
+  await f.write('.agent/skills/interview/SKILL.md', oldInterview);
+  await api.bootstrap({ ...f.options, refresh: true });
+  assert.equal(await fs.readFile(path.join(f.options.home, 'skills/interview/SKILL.md'), 'utf8'), currentInterview);
+  assert.equal(await fs.readFile(path.join(f.options.repo, '.agent/skills/interview/SKILL.md'), 'utf8'), currentInterview);
+  assert.equal(await fs.readFile(path.join(f.options.repo, '.agent/skills/plan/SKILL.md'), 'utf8'), oldInterview.replace('name: interview', 'name: plan'));
+  await fs.writeFile(globalCore, oldCore.replaceAll('\n', '\r\n'));
+  await f.write('.agent/skills/interview/SKILL.md', '# Customized interview\nKeep my project procedure.\n');
+  await api.bootstrap(f.options);
+  assert.equal(await fs.readFile(globalCore, 'utf8'), oldCore.replaceAll('\n', '\r\n'));
+  const refreshed = await api.bootstrap({ ...f.options, refresh: true });
+  assert.equal(await fs.readFile(globalCore, 'utf8'), currentCore);
+  assert.ok(refreshed.global.updated > 0);
+  assert.ok(refreshed.repo.skills.customized.includes('.agent/skills/interview/SKILL.md'));
+  assert.equal(await fs.readFile(path.join(f.options.repo, '.agent/skills/interview/SKILL.md'), 'utf8'), '# Customized interview\nKeep my project procedure.\n');
+  const second = await api.bootstrap({ ...f.options, refresh: true });
+  assert.equal(second.global.updated, 0);
+  assert.equal(second.repo.skills.updated, 0);
+  await fs.writeFile(globalCore, oldCore);
+  await f.write('.agent/execution.lock', 'active');
+  await rejects(api.bootstrap({ ...f.options, refresh: true }), 'EXECUTION_ACTIVE');
+  assert.equal(await fs.readFile(globalCore, 'utf8'), oldCore);
 });
 test('scaffold cannot be approved/executed; draft prepare is available', async (t) => {
   const f = await fixture(t);

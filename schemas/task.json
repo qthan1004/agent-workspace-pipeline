@@ -7,6 +7,24 @@
     "status": { "enum": ["draft", "approved", "blocked", "done"] },
     "risk": { "enum": ["low", "medium", "high"] },
     "version": { "type": "integer", "minimum": 1 },
+    "discovery": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "outcome", "sources", "flow", "decisions", "open_questions"],
+      "properties": {
+        "status": { "enum": ["pending", "ready"] },
+        "outcome": { "type": "string", "minLength": 1 },
+        "sources": { "type": "array", "items": {
+          "type": "object", "additionalProperties": false, "required": ["kind", "reference", "summary"],
+          "properties": { "kind": { "enum": ["conversation", "plan", "source", "reference"] }, "reference": { "type": "string", "minLength": 1 }, "summary": { "type": "string", "minLength": 1 } }
+        } },
+        "flow": { "type": "string", "minLength": 1 },
+        "decisions": { "type": "array", "items": {
+          "type": "object", "additionalProperties": false, "required": ["decision", "basis", "reference"],
+          "properties": { "decision": { "type": "string", "minLength": 1 }, "basis": { "enum": ["user", "source", "agent"] }, "reference": { "type": "string", "minLength": 1 } }
+        } },
+        "open_questions": { "$ref": "#/definitions/strings" }
+      }
+    },
     "paths": { "$ref": "#/definitions/strings" },
     "symbols": { "$ref": "#/definitions/strings" },
     "tags": { "$ref": "#/definitions/strings" },

@@ -59,6 +59,22 @@ export function validateTaskContent(task, { draft = false } = {}) {
   }
   for (const id of acceptance) if (!covered.has(id)) errors.push('Acceptance criterion has no evidence-backed DoD: ' + id);
   if (errors.length) fail('INVALID_CONTRACT', 'Task Contract is incomplete', errors);
+  if (!draft) {
+    const discovery = task.metadata.discovery;
+    const gaps = [];
+    if (!discovery) gaps.push('Legacy contract has no discovery record; revise it with the actual intent, context and flow before execution.');
+    else {
+      if (discovery.status !== 'ready') gaps.push('Discovery is pending. Resolve material intent/context questions before approving.');
+      if (discovery.open_questions.length) gaps.push('Unresolved material questions: ' + discovery.open_questions.join('; '));
+      if (!discovery.outcome.trim()) gaps.push('Record the user-visible outcome.');
+      if (!discovery.flow.trim()) gaps.push('Record the inspected source flow and ownership, or the evidenced new-project boundary.');
+      if (!discovery.sources.length || discovery.sources.some((source) => !source.reference.trim() || !source.summary.trim())) gaps.push('Record actual conversation/plan/source references and what they establish.');
+      if (!discovery.sources.some((source) => ['conversation', 'plan'].includes(source.kind))) gaps.push('Record the original request or supplied plan, not only agent/source interpretations.');
+      if (!discovery.sources.some((source) => source.kind === 'source')) gaps.push('Record inspected project/source evidence, including an actual inventory for a new project.');
+      if (discovery.decisions.some((item) => !item.decision.trim() || !item.reference.trim())) gaps.push('Each consequential decision needs its actual basis and reference.');
+    }
+    if (gaps.length) fail('DISCOVERY_NOT_READY', 'Intent/context discovery is not ready. The agent must resolve and record it; approval flags do not supply missing decisions.', gaps);
+  }
 }
 export function requireApproved(task, { allowDone = false } = {}) {
   validateTaskContent(task);

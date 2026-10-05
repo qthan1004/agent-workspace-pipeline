@@ -1,6 +1,8 @@
 # Decisions combined from the supplied sources
 
-The supplied agent-workspace-plan.md and conversation summary define the portable rules/context/contract/evidence layer. The latest user instruction makes every default role strong/high: Gemini 3.8+, Claude Sonnet/Opus 5.0+, GPT 5.6 Sol/Terra high+. These are the owner's capability targets; actual provider model IDs and availability belong to the harness. The temporary resource folder and archives were removed at the user's request after these decisions were incorporated.
+The expanded [source audit](source-audit.md) records archive inputs, each Kun ecosystem snapshot, adoption boundaries and the existing-project case study. [Behavioral evaluation](behavioral-evaluation.md) distinguishes working CLI gates from actual model judgment.
+
+The supplied agent-workspace-plan.md and conversation summary define the portable rules/context/contract/evidence layer. The latest user instruction makes every default role strong/high: Gemini 3.8+, Claude Sonnet/Opus 5.0+, GPT 5.6 Sol/Terra high+. These are the owner's capability targets; actual provider model IDs and availability belong to the harness. Supplied resources and the audit cache are retained outside the package; they are not published runtime files.
 
 The supplied common-skills.zip contributes understand-before-change, causal/impact analysis, project-scoped semantic tooling, preserved user work, evidence-backed verification, focused interviewing, testable specifications, planning and TDD. Duplicate working-style/personal-behavior principles become CORE; analyze/spec/planning share one living Task Contract. Generic review instructions omit payment-specific examples. The default skills are newly written adaptations, not an unmodified copy of the archive.
 

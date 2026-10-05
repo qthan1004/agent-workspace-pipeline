@@ -14,7 +14,7 @@ export const help = [
   '  init [--with codex,claude,gemini,antigravity|all] [--refresh] [--distribution npm|github]',
   '       default: all four platforms; --repo <dir> and --home <dir> are optional',
   '       --wiki-dir <dir> selects wiki/ or .wiki/ for a new project (default: wiki)',
-  '  setup [--home <dir>]  (initialize shared rules, skills, handbook and examples)',
+  '  setup [--home <dir>] [--refresh]  (initialize/update pristine shared templates; preserve custom files)',
   '  bootstrap (alias for init)',
   '  repo init | repo inspect',
   '  adapter install --with <platforms> [--refresh]  (route platforms to shared skills)',
@@ -59,7 +59,7 @@ const flags = Object.fromEntries([
 flags.help.short = 'h';
 const common = ['repo', 'home', 'json'];
 const allowed = {
-  bootstrap: ['with', 'name', 'distribution', 'refresh', 'wiki-dir'], init: ['with', 'name', 'distribution', 'refresh', 'wiki-dir'], setup: [], doctor: [],
+  bootstrap: ['with', 'name', 'distribution', 'refresh', 'wiki-dir'], init: ['with', 'name', 'distribution', 'refresh', 'wiki-dir'], setup: ['refresh'], doctor: [],
   'repo init': ['with', 'name', 'distribution', 'refresh', 'wiki-dir'], 'repo inspect': [], 'adapter install': ['with', 'refresh'],
   'task new': [], 'task list': [], 'task show': [], 'task validate': ['draft'], 'task approve': ['by'],
   'task update': ['from'], 'task delete': [], 'task finish': ['file'],

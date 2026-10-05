@@ -1,0 +1,46 @@
+{
+  "global/core/CORE.md": [
+    "58979dd31a1da32f8067d6c9f7652d3969fa924176a5c86af3109e679d13f638",
+    "870af355abf89f14349072315c25a4df606faaabbb6b7d0f8dd740e80d147201"
+  ],
+  "repo/.agent/CORE.md": [
+    "9777a2dbc86ca64104dd8dd59cc06dfd5b682f25d8d112bee527948b38db5908",
+    "f37af2f4ebe8c4712010f4627ab107f7228a3d972a617627c933479a36444556"
+  ],
+  "global/handbook/evidence.md": [
+    "eb9c21d0864d3c73e5a7637dafa4406d313ac27ada4deb3532ccc68cbbc9bf92"
+  ],
+  "global/skills/analyze/SKILL.md": [
+    "d0f5f7e8b05a0c38ca861750028c8a53bedaac94aa299837fa50354cf96d96b1",
+    "d36df76c3cfc3e81ccd60056a41d4d8eb6fe7763f9e7aa4fadf2d5fb9f068300"
+  ],
+  "global/skills/interview/SKILL.md": [
+    "1846df3976d6a134f7b2d7e59aa67e1956c527c42df6bc0c7877fc4801b42e65",
+    "c00e8f6a695fbf9297140f78fbb7385aaa80c3e38079f52782c883c0b3ec5440"
+  ],
+  "global/skills/pipeline/SKILL.md": [
+    "4708bac5cf691578aeaccdf1b68a242883459c2484f916610711aeab577010a2",
+    "c3847a0b977a9252c0b48da31874e20ce7d45b24f5f3c3429e6dd89070b3103f",
+    "7164db6e5cf27907ee3e2c192173e4c267362d636557ad8163c0cc11ca13e613"
+  ],
+  "global/skills/plan/SKILL.md": [
+    "a44b61eabb61ec125e3010b1b6fe82c9762e995eccf0e124959ce9e71a47301c",
+    "b05bcf6e050daa283017c29178bf2d30679126b5d1ff0ecce96ee7413545c951"
+  ],
+  "global/skills/review/SKILL.md": [
+    "d1edbf50e83258dd93e7a1627877a1edb9ba1a5e09cb59f328d26c94ffbd7e1d"
+  ],
+  "global/skills/tdd/SKILL.md": [
+    "45e95e4e72e581b97af54901ae39d75132709f4a2ab7a886b63bd752eab467ed"
+  ],
+  "global/skills/wiki-maintenance/SKILL.md": [
+    "a42befc4419bb53579b80724a9d93232081bd7795bbd88ff70a78b43872a89b2"
+  ],
+  "global/handbook/wiki.md": [
+    "cea425ce3aa51c6725ecf89c9c2fdbcf6004e1e5c0a3cfc8a5699c1b8c4a25d4",
+    "77b3914ad48b2f138350c731ecf4a8852142b9f233bf9380b4c7c5749d13ce4e"
+  ],
+  "global/handbook/agent-operations.md": [
+    "57064d844c3045230434e404a526c57c9450c3a012c42d03839edcde4a98d25f"
+  ]
+}

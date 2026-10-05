@@ -1,17 +1,19 @@
 ---
 name: analyze
-description: Analyze a feature or bug against current source and derive observable acceptance criteria for a Task Contract.
+description: Establish requested behavior and actual source/data/control flow, state ownership, caller impact and verification for features, bugs or supplied plans before selecting a change.
 metadata:
   agent_workspace:
     tags: [analyze, analysis, requirement, architecture, impact, bug]
 ---
 
-# Analyze the contract
+# Ground the requirement in context
 
-Establish required behavior, current causal path, invariant owner, affected callers/alternate flows and meaningful boundaries from current source and project-scoped semantic tools. Distinguish facts, assumptions and unresolved choices.
+MUST inspect applicable instructions, original request/plan, configuration, relevant source/tests and current user changes. Use scoped semantic tools for symbols/callers/types with evidenced fallback under CORE. Wiki/indexes locate candidates; unread source and missing history stay unknown.
 
-Accept ordinary questions, bug descriptions and supplied documents. When the user requests analysis only, return the analysis without requiring a task record or implementation. For a broader requested plan/implementation, the agent carries the findings into its internal contract.
+Establish desired outcome and actual flow: entry/input, state/data/invariant owner, transitions/errors, output and consumers. Inspect relevant direct/indirect callers, alternate paths and contracts before shared changes. For a new project, separate the inspected empty/existing boundary from the proposed flow. Never import another project's stack or domain conventions.
 
-Compare plausible fixes against required behavior, contracts, blast radius, complexity and available verification. Choose the smallest correct change; preserve intentional complexity.
+Separate supplied requirements, sourced facts and agent proposals. Cross-check plans against current code; do not blindly accept stale paths. Name material unknown/conflicting semantics and MUST invoke interview when sources cannot settle them. Do not invent decisions to close gaps.
 
-Derive observable acceptance criteria and evidence-backed DoD, including relevant rejection/state-transition/regression paths. Ask only for consequential missing semantic decisions. Compile agreed results into the single Task Contract; do not create a separate analysis document by default.
+For bugs, establish reproduction/causal path before selecting a fix. Compare alternatives by required behavior, ownership, compatibility, blast radius, complexity and actual verification. Choose the smallest complete correction; preserve intentional complexity and unrelated defaults.
+
+Derive falsifiable acceptance/DoD with meaningful negative, transition and regression cases. Analysis-only requests return findings without implementation. For requested planning/implementation, carry concise references and flow into discovery; do not create separate analysis docs by default. Use plan's technical-handoff reference for a requested technical document. Discovery is not ready while consequential questions remain.

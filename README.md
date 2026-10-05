@@ -1,10 +1,14 @@
 # Agent Workspace Pipeline
 
-Cài một lần cho project để Codex, Claude Code, Gemini hoặc Antigravity cùng làm việc theo một quy trình: **hiểu yêu cầu → lập task/plan → sửa code → kiểm tra → review → hoàn tất**.
+Cài một lần cho project để Codex, Claude Code, Gemini hoặc Antigravity cùng làm việc theo một quy trình: **đọc yêu cầu và source/flow → làm rõ phần còn thiếu → plan → implement → kiểm chứng → technical docs → review → hoàn tất**.
 
 **Bạn chỉ trò chuyện hoặc gửi tài liệu/plan.** Sau khi init, agent tự phân tích yêu cầu, chọn skills/context và vận hành pipeline. Tạo task, đặt ID, viết/cập nhật contract, chuẩn bị brief, chạy checks, ghi evidence và chuyển trạng thái đều là việc nội bộ của agent. Bạn có thể dùng 2–3 nền tảng trên cùng project; chúng đọc chung .agent và wiki.
 
-**Bản hiện tại: 0.2.1.** Package được phân phối qua GitHub Release và cài bằng npm/npx. **Chưa publish lên npm registry**, nên hãy dùng URL dưới đây để cài ngay.
+Agent tự đọc stack, source và flow đã có để chọn cách làm. **“Don't guess, please ask”** áp dụng khi còn thiếu quyết định có thể đổi kết quả: agent hỏi đúng phần đó và chờ trước khi code phụ thuộc vào câu trả lời. Không hỏi bạn thông tin có thể đọc từ repo; không tự biến “implement UI theo ảnh” thành prototype hay dựng nghiệp vụ chưa được yêu cầu.
+
+Các patterns đã đối chiếu từ archive, ecosystem Kun và case study được ghi ở [source audit](docs/source-audit.md). Bộ này dùng harness/model của bạn để làm việc; CLI quản lý records và các gate, không gọi model hay tự chạy một fleet chỉ vì init.
+
+**Bản hiện tại: 0.3.0.** Package được phân phối qua GitHub Release và cài bằng npm/npx. **Chưa publish lên npm registry**, nên hãy dùng URL dưới đây để cài ngay.
 
 ## Đọc phần nào trước?
 
@@ -65,7 +69,7 @@ Người cài package public không cần npm login. Login chỉ cần cho maint
 **Dùng Codex + Claude:**
 
 ~~~sh
-npx --yes https://github.com/qthan1004/agent-workspace-pipeline/releases/download/v0.2.1/agent-workspace-pipeline-0.2.1.tgz init --distribution github --with codex,claude
+npx --yes https://github.com/qthan1004/agent-workspace-pipeline/releases/download/v0.3.0/agent-workspace-pipeline-0.3.0.tgz init --distribution github --with codex,claude
 ~~~
 
 **Dùng Codex + Claude + Gemini:** thay phần cuối thành --with codex,claude,gemini.
@@ -73,7 +77,7 @@ npx --yes https://github.com/qthan1004/agent-workspace-pipeline/releases/downloa
 **Muốn đủ cả bốn:** bỏ --with, như lệnh này:
 
 ~~~sh
-npx --yes https://github.com/qthan1004/agent-workspace-pipeline/releases/download/v0.2.1/agent-workspace-pipeline-0.2.1.tgz init --distribution github
+npx --yes https://github.com/qthan1004/agent-workspace-pipeline/releases/download/v0.3.0/agent-workspace-pipeline-0.3.0.tgz init --distribution github
 ~~~
 
 | Bạn dùng | Giá trị --with |
@@ -88,15 +92,15 @@ Các tên viết thường, ngăn bằng dấu phẩy, **không có dấu cách*
 
 Không cần clone source, tải file về bằng tay hoặc dùng GitHub token. --distribution github giúp các instructions của project tiếp tục gọi đúng bản CLI từ release này trên máy khác.
 
-**Đã init trước đây:** chạy lại lệnh tương ứng. File còn thiếu sẽ được bổ sung; các nền tảng đã có vẫn được giữ. Nếu nâng từ bản cũ, thêm --refresh để cập nhật block instructions của package, giữ phần nội dung riêng của bạn.
+**Đã init trước đây:** chạy lại lệnh tương ứng. File còn thiếu sẽ được bổ sung; các nền tảng đã có vẫn được giữ. Khi nâng bản, thêm --refresh để cập nhật block instructions và CORE/skills/handbook còn nguyên bản mặc định cũ. File tùy biến được giữ và liệt kê trong customized để agent/maintainer rà.
 
 ### Bước 3 — Kiểm tra cài thành công
 
 Vẫn ở terminal của project, chạy:
 
 ~~~sh
-npx --yes https://github.com/qthan1004/agent-workspace-pipeline/releases/download/v0.2.1/agent-workspace-pipeline-0.2.1.tgz doctor
-npx --yes https://github.com/qthan1004/agent-workspace-pipeline/releases/download/v0.2.1/agent-workspace-pipeline-0.2.1.tgz skills list
+npx --yes https://github.com/qthan1004/agent-workspace-pipeline/releases/download/v0.3.0/agent-workspace-pipeline-0.3.0.tgz doctor
+npx --yes https://github.com/qthan1004/agent-workspace-pipeline/releases/download/v0.3.0/agent-workspace-pipeline-0.3.0.tgz skills list
 ~~~
 
 Nếu đã cài từ npm registry sau khi package được publish, dùng lệnh ngắn tương ứng:
@@ -177,7 +181,7 @@ Với npx, thêm --wiki-dir .wiki vào lệnh ở mục 1. Agent đọc wiki.ind
 
 prepared/evidence/learning mặc định được ignore trong Git; được tạo khi workflow sử dụng chúng. Với workspace nhiều repo, init từng repo cần pipeline, có thể dùng chung global home.
 
-**File đã có sẵn:** giữ nguyên CORE/config/skills bạn đã chỉnh. AGENTS.md, CLAUDE.md, GEMINI.md nhận một block Agent Workspace nếu chưa có; không thay toàn bộ file. --refresh cập nhật block do package quản lý, giữ instructions của bạn. Chọn ít nền tảng hơn ở lần sau không gỡ những nền tảng đã cài.
+**File đã có sẵn:** giữ CORE/config/skills bạn đã chỉnh. AGENTS.md, CLAUDE.md, GEMINI.md nhận một block Agent Workspace nếu chưa có; không thay toàn bộ file. --refresh cập nhật block quản lý và các shipped defaults đã nhận diện, giữ phần riêng của bạn. Chọn ít nền tảng hơn ở lần sau không gỡ những nền tảng đã cài.
 
 ## 3. Bảy skills làm gì?
 
@@ -188,9 +192,9 @@ prepared/evidence/learning mặc định được ignore trong Git; được t�
 | pipeline | Điều phối cả task: yêu cầu → contract → thực hiện → evidence → review → finish | “Dùng pipeline sửa lỗi đăng nhập này đến khi kiểm tra xong.” |
 | analyze | Đọc source, tìm nguyên nhân/impact và rút ra tiêu chí nghiệm thu | “Phân tích lỗi này, xác định callers bị ảnh hưởng và cách chứng minh đã sửa.” |
 | interview | Làm rõ các quyết định còn thiếu về hành vi/phạm vi trước khi làm | “Yêu cầu phân quyền còn mơ hồ, giúp tôi chốt hành vi cần có.” |
-| plan | Lập các bước thực hiện trong một Task Contract; yêu cầu chỉ plan thì dừng ở plan | “Lập plan thêm reset password, chưa implement.” |
+| plan | Plan gắn với source/flow, acceptance và checks; có reference hướng dẫn technical handoff; chỉ plan thì dừng ở plan | “Lập plan thêm reset password, chưa implement.” |
 | tdd | Dùng test có ý nghĩa để tái hiện lỗi/kiểm chứng hành vi, sửa và kiểm tra regression | “Tái hiện bug bằng test rồi sửa, kiểm tra các case liên quan.” |
-| review | Review độc lập dựa trên contract, source hiện tại và evidence; trả findings hoặc review pass có phạm vi rõ | “Review các thay đổi vừa làm, kiểm tra evidence và callers.” |
+| review | Review cả intent, source, evidence và docs; kiểm chứng feedback PR/MR trước khi sửa, giữ baseline của caller khác | “Review các thay đổi vừa làm; kiểm tra feedback này có đúng với source không.” |
 | wiki-maintenance | Onboard/cập nhật kiến thức từ source đã kiểm tra, đề xuất/release wiki trong maintenance được phép | “Tôi cho phép onboarding wiki: đọc source và tài liệu để mô tả auth flow.” |
 
 Bạn không cần thuộc các tên để dùng hằng ngày: instructions hướng agent vào pipeline. Có thể nhắc “skill plan của Agent Workspace” để agent đọc .agent/skills/plan/SKILL.md. Agent dùng tên trong bảng khi gọi CLI, không cần platform-specific slash commands.
@@ -211,6 +215,16 @@ Các lệnh ngắn này dùng sau khi cài CLI global như mục 5. Nếu dùng 
 ## 4. Trò chuyện hoặc gửi plan cho agent
 
 Mở đúng project đã init, chọn model mạnh và effort cao trong harness, rồi nhắn như một cuộc trò chuyện coding bình thường. Các mục tiêu năng lực của chủ workspace là Gemini 3.8+, Claude Sonnet/Opus 5.0+, GPT 5.6 Sol/Terra high+; chọn model ID thực tế mà harness cung cấp.
+
+### Ví dụ yêu cầu còn chung chung
+
+> Trong project này có ảnh thiết kế, implement UI theo ảnh giúp tôi.
+
+Agent đọc ảnh, instructions, project configuration và source liên quan. Nếu project đã có React/TS và flow hiện hữu, nó tự phát hiện và tái sử dụng. Nếu target trống hoặc chưa rõ deliverable/flow, nó hỏi, ví dụ: “Ông muốn bản visual prototype hay màn hình tích hợp vào app? Các action trong ảnh cần chạy thật theo flow nào?” Câu hỏi thực tế phụ thuộc phần còn thiếu, không phải checklist cố định.
+
+Sau câu trả lời, agent tóm tắt outcome và context đã rõ, tự lập plan với các state/case cần kiểm tra, implement trong scope và cập nhật technical docs liên quan theo source cuối. Bạn không tạo task hay điền YAML. Discovery còn pending/open questions sẽ bị CLI chặn approve/run; review vẫn phải đối chiếu nguồn thật vì một record ready có thể ghi sai.
+
+Plan tốt nêu current → proposed flow, state/data owner, phần phải giữ, các bước implementation và test/runtime matrix. Technical docs ghi behavior thực tế và checks đã chạy, phân biệt phần planned hoặc chưa kiểm chứng. Đây là tiêu chuẩn từ case study; [behavioral evaluation](docs/behavioral-evaluation.md) có các ca retest với model thật. Test CLI pass không chứng minh model luôn hỏi đúng hoặc vượt chất lượng case study.
 
 ### Hỏi hoặc phân tích
 
@@ -270,7 +284,7 @@ Task Contract là bản ghi nội bộ giữ semantics và plan. Evidence/receip
 Lệnh npx ở mục 1 đủ để init. Agent đọc portable invocation trong .agent/ADAPTER.md để tự chạy các lệnh tiếp theo. Nếu muốn có binary ngắn cho setup/diagnostics hoặc công cụ của team, cài một lần:
 
 ~~~sh
-npm install --global https://github.com/qthan1004/agent-workspace-pipeline/releases/download/v0.2.1/agent-workspace-pipeline-0.2.1.tgz
+npm install --global https://github.com/qthan1004/agent-workspace-pipeline/releases/download/v0.3.0/agent-workspace-pipeline-0.3.0.tgz
 agent-workspace --version
 ~~~
 
@@ -284,20 +298,22 @@ Nếu vẫn dùng npx, thêm/sửa --with trong lệnh ở mục 1 rồi chạy 
 
 ### Nâng bản đã init
 
-Cài/chạy version mới rồi thêm --refresh vào init để cập nhật block instructions của package:
+Cài/chạy version mới rồi thêm --refresh vào init để cập nhật routers và templates mặc định còn nguyên bản:
 
 ~~~sh
 agent-workspace init --with all --refresh
 ~~~
 
-Có thể thay all bằng danh sách nền tảng đang dùng. CORE/config/skills đã có được giữ nguyên; maintainer quản lý thay đổi nội dung tùy chỉnh trong maintenance. Adapter/knowledge đổi khiến baseline cũ cần được agent xử lý bằng revision thích hợp trước execution tiếp theo.
+Có thể thay all bằng danh sách nền tảng đang dùng. --refresh nhận diện nội dung shipped trong các bản 0.1.0/0.2.0/0.2.1, kể cả khác BOM/line endings, rồi nâng CORE/skills/handbook mặc định. Nội dung tùy biến được giữ, báo trong customized; version label giống nhau không đủ để ghi đè. Config, wiki, task và examples đang có được giữ. Repo có execution.lock sẽ chặn refresh. Nâng global home dùng chung khi các execution đang dùng home đó đã dừng; đổi knowledge khiến baseline cũ cần được agent xử lý bằng revision trước execution tiếp theo.
+
+**Contract trước 0.3.0:** agent vẫn đọc/revise được nhưng phải bổ sung discovery gồm outcome, request/source references, flow, decision provenance và giải quyết open questions trước approval/execution. Agent tự làm việc này từ conversation/source; user không migrate YAML bằng tay. Reload phiên agent sau nâng cấp để nạp instructions mới.
 
 ### Clone project sang máy mới
 
 Cài Node/harness, mở project và tạo bộ global cho user hiện tại:
 
 ~~~sh
-npx --yes https://github.com/qthan1004/agent-workspace-pipeline/releases/download/v0.2.1/agent-workspace-pipeline-0.2.1.tgz setup
+npx --yes https://github.com/qthan1004/agent-workspace-pipeline/releases/download/v0.3.0/agent-workspace-pipeline-0.3.0.tgz setup
 ~~~
 
 Agent có thể tự chạy setup khi cần rồi kiểm tra doctor. Đường dẫn mặc định dùng ~ của user hiện tại; --repo chọn project, --home hoặc AGENT_WORKSPACE_HOME chọn bộ global riêng.

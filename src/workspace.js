@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { stringify } from 'yaml';
 import { copyTemplates, exists, expand, fail, frontmatter, homeDirectory, inside, packageRoot, readYaml, safePath, validateSchema, walk, writeManaged, writeNew } from './io.js';
+import { syncSummary, syncTemplate, syncTemplates } from './template-sync.js';
 
 export const harnesses = ['codex', 'claude', 'gemini', 'antigravity', 'generic'];
 export const defaultHarnesses = ['codex', 'claude', 'gemini', 'antigravity'];
@@ -17,10 +18,18 @@ async function assertInstallable(repo) {
 }
 export async function initGlobal(options = {}) {
   const home = homeDirectory(options.home);
-  const files = await copyTemplates(path.join(packageRoot, 'templates/global'), home);
-  files.push(await writeNew(home, 'handbook/agent-operations.md', await fs.readFile(path.join(packageRoot, 'docs/agent-operations.md'), 'utf8')));
+  if (options.refresh) {
+    let repo = options.repo;
+    if (!repo) {
+      try { repo = await findRepo(options.cwd || process.cwd()); }
+      catch (error) { if (error.code !== 'REPO_NOT_INITIALIZED') throw error; }
+    }
+    if (repo) await assertInstallable(path.resolve(repo));
+  }
+  const files = await syncTemplates(path.join(packageRoot, 'templates/global'), home, 'global', options);
+  files.push(await syncTemplate(home, 'handbook/agent-operations.md', await fs.readFile(path.join(packageRoot, 'docs/agent-operations.md'), 'utf8'), 'global/handbook/agent-operations.md', options));
   files.push(...await copyTemplates(path.join(packageRoot, 'examples'), path.join(home, 'examples')));
-  return { home, created: files.filter((f) => f.created).length, preserved: files.filter((f) => !f.created).length };
+  return { home, ...syncSummary(files, home) };
 }
 export async function findRepo(start) {
   let current = path.resolve(start);
@@ -105,8 +114,9 @@ export async function installAdapters(repo, value, options = {}) {
   for (const harness of selected) adapters.push({ harness, ...(harness === 'generic' ? shared : await installAdapter(repo, harness, options)) });
   const config = await readYaml(await safePath(repo, '.agent/workspace.yaml'));
   const directory = await safePath(repo, config.skills.local);
-  const files = await copyTemplates(path.join(packageRoot, 'templates/global/skills'), directory);
-  return { platforms: selected, adapters, shared, skills: { directory: config.skills.local, created: files.filter((item) => item.created).length, preserved: files.filter((item) => !item.created).length } };
+  const files = await syncTemplates(path.join(packageRoot, 'templates/global/skills'), directory, 'global/skills', options);
+  const entrypoints = files.filter((item) => path.basename(item.file) === 'SKILL.md');
+  return { platforms: selected, adapters, shared, skills: { directory: config.skills.local, ...syncSummary(entrypoints, repo), customized: syncSummary(files, repo).customized } };
 }
 export async function initRepo(options = {}) {
   if (options.distribution && !['npm', 'github'].includes(options.distribution)) fail('UNKNOWN_DISTRIBUTION', 'Use --distribution npm or github.');
@@ -134,7 +144,7 @@ export async function initRepo(options = {}) {
   const config = await writeNew(repo, '.agent/workspace.yaml', stringify(template));
   const settings = await readYaml(config.file);
   await validateSchema('workspace', settings);
-  const files = await copyTemplates(path.join(packageRoot, 'templates/repo'), repo);
+  const files = await syncTemplates(path.join(packageRoot, 'templates/repo'), repo, 'repo', options);
   // Honor existing wiki paths; initialization never relocates released knowledge.
   const wikiSource = path.join(packageRoot, 'templates/wiki');
   const wikiRoot = path.dirname(await safePath(repo, settings.wiki.map));
@@ -146,7 +156,7 @@ export async function initRepo(options = {}) {
   files.push(await writeNew(repo, '.agent/.gitignore', await fs.readFile(path.join(packageRoot, 'templates/agent-ignore.txt'), 'utf8')));
   for (const directory of ['.agent/rules', '.agent/skills', '.agent/tasks', '.agent/raw', '.agent/change-requests']) await fs.mkdir(await safePath(repo, directory), { recursive: true });
   const integration = await installAdapters(repo, selected, options);
-  return { repo, config, adapter: integration.adapters[0], ...integration, wiki: { index: settings.wiki.index, map: settings.wiki.map }, created: files.filter((f) => f.created).length };
+  return { repo, config, adapter: integration.adapters[0], ...integration, wiki: { index: settings.wiki.index, map: settings.wiki.map }, ...syncSummary(files, repo) };
 }
 export async function bootstrap(options = {}) {
   if (options.distribution && !['npm', 'github'].includes(options.distribution)) fail('UNKNOWN_DISTRIBUTION', 'Use --distribution npm or github.');

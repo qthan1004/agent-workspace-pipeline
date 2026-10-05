@@ -44,6 +44,7 @@ Agent đọc .agent/tasks/DEMO-1.md và điền contract từ conversation/sourc
 | status | draft trước khi duyệt |
 | risk | low / medium / high |
 | version | Số nguyên từ 1; task update tự tăng |
+| discovery | Outcome, request/source references, flow, provenance và câu hỏi còn thiếu; agent ghi pending trước, ready khi đã đủ |
 | paths | Các đường dẫn cụ thể liên quan, relative từ repo root |
 | symbols | Các symbol cần điều tra, nếu biết |
 | tags | Topic/domain giúp resolver chọn rules/wiki/skills |
@@ -54,7 +55,7 @@ Agent đọc .agent/tasks/DEMO-1.md và điền contract từ conversation/sourc
 | acceptance_criteria | Các kết quả quan sát được, có ID riêng |
 | dod | ID, criterion, acceptance IDs và evidence kinds cần chứng minh |
 
-Ví dụ YAML:
+Ví dụ YAML (thêm discovery ở mục tiếp theo; agent điền dữ kiện thực tế trước approval):
 
 ~~~yaml
 id: DEMO-1
@@ -83,6 +84,37 @@ Mọi acceptance criterion phải được ít nhất một DoD bao phủ. Task 
 Giữ các section có sẵn: Goal, User Intent, Decisions, Constraints, Non-goals, Acceptance Criteria, Known Impact Surface, Relevant Project Context, Expected Write Scope, Required Evidence, Definition of Done, Escalation Conditions. Có thể để “None” nếu một section thật sự không có nội dung; không bỏ section hoặc để TODO khi duyệt. Các bước implementation nằm trong Decisions, không bắt buộc tạo thêm plan/spec/analysis files.
 
 Xem [examples/task.md](../examples/task.md) cho contract đầy đủ của bài demo.
+
+### Discovery: agent tự làm rõ và ghi lại
+
+Trước approve/implementation, agent đọc request/plan và repo, chạy self-check trong CORE. Metadata execution từ 0.3.0:
+
+~~~yaml
+discovery:
+  status: ready
+  outcome: Thêm helper greet với hành vi trong acceptance criteria.
+  sources:
+    - kind: conversation
+      reference: Request hiện tại yêu cầu implement demo greet.
+      summary: Named/default greeting được yêu cầu rõ.
+    - kind: source
+      reference: Inventory src/test và package.json của target đã kiểm tra.
+      summary: Project Node ESM, không có helper/caller trùng tên.
+  flow: Consumer gọi greet -> helper trả greeting; test kiểm tra explicit/default input, không có state dùng chung.
+  decisions:
+    - decision: Dùng Node test runner, không thêm dependency.
+      basis: agent
+      reference: Judgment implementation trong scope demo và project conventions.
+  open_questions: []
+~~~
+
+Đây là shape, không phải dữ kiện để copy vào target. sources.kind: conversation / plan / source / reference; phải có request (conversation hoặc plan) và source/project inspection thực tế. decisions.basis: user (reply thật), source (convention/contract đã đọc), agent (judgment trong scope rõ). Không ghi proposal thành user decision. flow ghi entry/input → owner/transition → output/callers và nhánh cần giữ; project mới ghi inventory thực tế và proposed flow riêng.
+
+open_questions ghi câu hỏi còn thiếu có thể đổi outcome/scope/behavior/risk. Nếu có, giữ pending, hỏi và chờ trước dependent edits. Không đưa record cho user điền. Trước implementation không trivial, tóm tắt outcome/context/approach ngắn; không thêm sign-off khi request đã cấp quyền.
+
+CLI chặn discovery thiếu/pending, open questions, thiếu request/source, flow/provenance rỗng. Nó không xác thực nội dung references; agent và fresh reviewer vẫn đối chiếu nguồn. Contract cũ thiếu discovery vẫn show/update/prepare --draft được; agent tự revise, bổ sung dữ kiện rồi approve/prepare trước execution. Demo ship ở pending: inspect target, bổ sung source và set ready; không copy rồi approve ngay.
+
+Với material flow/contract, đọc technical-handoff reference trong .agent/skills/plan/references/technical-handoff.md (hoặc skills/plan/references/technical-handoff.md ở global home; dùng skills.local nếu cấu hình khác). Cập nhật applicable technical docs theo source cuối và kiểm tra chúng khớp code/test.
 
 ### Read: xem/list/check task
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0
+
+- Ground discovery in the original request, inspected source/flow and decision provenance; block approval/execution while discovery is missing, pending or has material open questions. Legacy records remain readable and revisable.
+- Strengthen CORE, pipeline, analyze, interview, plan and review around understood intent; preserve autonomous routine implementation without inventing user choices.
+- Add conditional technical-handoff and review-feedback references, linking implementation slices, acceptance, regression/runtime evidence and final documentation.
+- Make explicit refresh update recognized pristine CORE/skill/handbook defaults while preserving and reporting customized files and respecting execution locks.
+- Record pinned source/adoption decisions across supplied archives and the Kun ecosystem, with an existing-project case study and separate live-model evaluation scenarios.
+- Add infrastructure regressions for discovery, provenance freshness, legacy migration and conservative upgrades; retain portable npm/npx distribution and one shared project skills folder.
+
 ## 0.2.1
 
 - Make conversation, questions and supplied Markdown plans the user interface; agents own task IDs, contracts, CLI operations, evidence and status transitions.
