@@ -38,7 +38,8 @@
     "tools": {
       "type": "object", "additionalProperties": {
         "type": "object", "required": ["required", "provider"], "additionalProperties": false,
-        "properties": { "required": { "type": "boolean" }, "provider": { "type": ["string", "null"], "minLength": 1 } }
+        "properties": { "required": { "type": "boolean" }, "provider": { "type": ["string", "null"], "minLength": 1 }, "provider_first": { "type": "boolean" }, "impact": { "type": "boolean" } },
+        "allOf": [{ "if": { "required": ["provider_first"], "properties": { "provider_first": { "const": true } } }, "then": { "properties": { "provider": { "type": "string", "minLength": 1 } } } }]
       }
     },
     "review": {

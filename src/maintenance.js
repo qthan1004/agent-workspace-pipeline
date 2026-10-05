@@ -7,6 +7,7 @@ import { loadWorkspace } from './workspace.js';
 import { document, matchesPath, rulesInventory, skillInventory, wikiInventory } from './resolver.js';
 import { readTask, validateTaskContent } from './tasks.js';
 import { capture } from './process.js';
+import { capturedSourceDrift, hasWikiVerification, verifyCapturedSources } from './knowledge.js';
 
 export async function assertIdle(workspace) {
   if (await exists(await safePath(workspace.repo, '.agent/execution.lock'))) fail('EXECUTION_ACTIVE', 'An execution is active. Finish/stop it before maintenance or semantic task updates.');
@@ -124,12 +125,18 @@ export async function doctor(options = {}) {
     if (rule.level === 'specialist' && rule.metadata.status === 'active' && !(rule.metadata.paths?.length || rule.metadata.scope?.length || rule.metadata.symbols?.length || rule.metadata.tags?.length)) findings.push({ severity: 'error', code: 'UNROUTABLE_RULE', message: rule.file });
   }
   if (!wiki.some((page) => page.metadata.status === 'active')) findings.push({ severity: 'info', code: 'WIKI_NOT_RELEASED', message: 'New project: populate/verify draft knowledge through authorized onboarding.' });
+  for (const page of wiki) if (page.metadata.status === 'active' && page.captured_source_drift.length) findings.push({ severity: 'warning', code: 'WIKI_SOURCE_DRIFT', message: page.id + ': captured sources changed/missing; excluded from auto context.', paths: page.captured_source_drift });
   if (!(await exists(await safePath(workspace.repo, '.agent/CORE.md')))) findings.push({ severity: 'error', code: 'MISSING_REPO_CORE', message: 'Missing repo CORE.' });
   return { ok: !findings.some((item) => item.severity === 'error'), repo: workspace.repo, home: workspace.home, inventory: { rules: rules.length, wiki: wiki.length, skills: skills.length }, findings, note: 'Doctor checks configuration and files. Verify live tool access and actual model selection in your harness.' };
 }
 export async function staleWiki(options = {}) {
   const workspace = await loadWorkspace(options), pages = await wikiInventory(workspace), results = [];
   for (const page of pages) {
+    if (page.metadata.verified_sources?.length) {
+      const affected = await capturedSourceDrift(workspace, page.metadata);
+      results.push({ id: page.id, status: affected.length ? 'potentially-stale' : 'captured-sources-unchanged', affected, verification_scope: page.metadata.verification_scope, upstream: 'not-checked' });
+      if (!page.metadata.verified_against) continue;
+    }
     const revision = page.metadata.verified_against;
     if (!revision) { results.push({ id: page.id, status: 'unverified' }); continue; }
     const verified = await capture('git', ['rev-parse', '--verify', '--end-of-options', revision + '^{commit}'], workspace.repo);
@@ -171,7 +178,10 @@ export async function updateWiki(id, options = {}) {
   for (const key of ['id', 'version', 'released_at', 'status', 'owner', 'scope', 'verified_against']) if (!(key in input.metadata)) fail('INVALID_WIKI_PAGE', 'Missing ' + key);
   if (input.metadata.id !== previous.id || !input.body.trim()) fail('INVALID_WIKI_PAGE', 'Preserve page ID and provide substantive content.');
   if (previous.sha256 !== hash(input.text) && input.metadata.version === previous.metadata.version) fail('VERSION_NOT_BUMPED', 'Bump the version for changed knowledge.');
-  if (input.metadata.status === 'active' && (!input.metadata.released_at || !input.metadata.verified_against)) fail('UNVERIFIED_WIKI', 'Active pages need their verified source revision and release date.');
+  if (input.metadata.status === 'active') {
+    if (!hasWikiVerification(input.metadata)) fail('UNVERIFIED_WIKI', 'Active pages need a release date and reviewed revision or captured source hashes.');
+    await verifyCapturedSources(workspace, input.metadata);
+  }
   const map = await readYaml(workspace.wikiMap);
   const routing = map.contexts[previous.context];
   routing.paths = input.metadata.scope;

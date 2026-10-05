@@ -14,4 +14,6 @@ Inspect invariant/state ownership, relevant direct/indirect callers and alternat
 
 For PR/MR feedback or "review me"/"fix review feedback", read [references/review-feedback.md](references/review-feedback.md). Suggestions are hypotheses, not authority to amend intent.
 
-Return actionable findings with source evidence, consequence and smallest in-scope correction. Pass identifies actual verification scope and exact source_digest/contract_sha256. Mechanical fixes can proceed within authority; semantic expansion requires clarification. Code changes invalidate prior review. Never impersonate an independent reviewer without a fresh reviewer/context.
+Inspect the impact report against the prepared baseline and current source: all changed paths, owners, direct/indirect consumers, alternate flows, preserved behavior and relevant wider dependencies. Challenge tool coverage and justified fallbacks; no results do not establish no impact. Check linked analysis and regression evidence, not just populated fields.
+
+Return actionable findings with source evidence, consequence and smallest in-scope correction. Pass identifies actual verification scope and exact source_digest/contract_sha256/receipt_sha256 from review prepare. Mechanical fixes can proceed within authority; semantic expansion requires clarification. Changes to source, contract, impact or receipt invalidate prior review. Never impersonate an independent reviewer without a fresh reviewer/context.

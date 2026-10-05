@@ -22,7 +22,7 @@ Từ thư mục source chứa package.json:
 npm ci
 npm run release:check
 npm pack
-npm install --prefix .test-artifacts/packed-install --ignore-scripts --no-audit --no-fund ./agent-workspace-pipeline-0.3.0.tgz
+npm install --prefix .test-artifacts/packed-install --ignore-scripts --no-audit --no-fund ./agent-workspace-pipeline-0.4.0.tgz
 npm run smoke:packed
 npm run smoke:registry
 ~~~
@@ -38,13 +38,13 @@ smoke:registry phục vụ **registry thử trên loopback** và tarball hiện 
 GitHub Release lưu đúng tarball npm; user cài bằng URL HTTPS public, không cần clone source. Sau khi kiểm thử, commit/push source và tạo release kèm tarball:
 
 ~~~powershell
-gh release create v0.3.0 ./agent-workspace-pipeline-0.3.0.tgz --repo qthan1004/agent-workspace-pipeline --target main --title "Agent Workspace Pipeline 0.3.0" --notes-file CHANGELOG.md
+gh release create v0.4.0 ./agent-workspace-pipeline-0.4.0.tgz --repo qthan1004/agent-workspace-pipeline --target main --title "Agent Workspace Pipeline 0.4.0" --notes-file CHANGELOG.md
 ~~~
 
 Lệnh user:
 
 ~~~powershell
-npx --yes https://github.com/qthan1004/agent-workspace-pipeline/releases/download/v0.3.0/agent-workspace-pipeline-0.3.0.tgz init --with codex,claude --distribution github
+npx --yes https://github.com/qthan1004/agent-workspace-pipeline/releases/download/v0.4.0/agent-workspace-pipeline-0.4.0.tgz init --with codex,claude --distribution github
 ~~~
 
 Kênh github được lưu trong workspace config. Router dùng URL release của cùng version, nên không phụ thuộc npm account hay local path. Kênh npm mặc định dùng package name/version trên registry; khi chuyển kênh, maintainer đổi cli.distribution và refresh adapter.
@@ -72,8 +72,8 @@ npm view agent-workspace-pipeline version --registry https://registry.npmjs.org/
 Kiểm tra từ một project mới bằng lệnh user sẽ dùng:
 
 ~~~powershell
-npx --yes --package agent-workspace-pipeline@0.3.0 agent-workspace init --with codex,claude
-npx --yes --package agent-workspace-pipeline@0.3.0 agent-workspace doctor
+npx --yes --package agent-workspace-pipeline@0.4.0 agent-workspace init --with codex,claude
+npx --yes --package agent-workspace-pipeline@0.4.0 agent-workspace doctor
 ~~~
 
 User sau đó cài global bằng npm install --global agent-workspace-pipeline hoặc dùng npx như README. Không cần tarball hay path trên máy maintainer.
@@ -96,7 +96,7 @@ Lệnh đầu và cuối init đủ bốn nền tảng; lệnh giữa chọn Cod
 4. Publish và kiểm tra npm view như trên.
 5. Hướng dẫn team nâng CLI và chạy init --with <platforms> --refresh trước khi chuẩn bị task mới.
 
-Router pin version tại thời điểm init/refresh. --refresh cập nhật managed blocks và recognized pristine CORE/skills/handbook defaults; file tùy biến được giữ và báo trong customized. Config/wiki/tasks/examples cũ được giữ. Contract trước 0.3.0 cần agent bổ sung discovery trước execution. Xem [source audit](source-audit.md) và [behavioral evaluation](behavioral-evaluation.md): fixture gate pass không chứng minh một model hiểu đúng mọi request.
+Router pin version tại thời điểm init/refresh. --refresh cập nhật managed blocks và recognized pristine CORE/skills/handbook defaults; file tùy biến được giữ và báo trong customized. Config/wiki/tasks/examples cũ được giữ. Contract trước 0.4.0 cần agent bổ sung discovery trước execution. Xem [source audit](source-audit.md) và [behavioral evaluation](behavioral-evaluation.md): fixture gate pass không chứng minh một model hiểu đúng mọi request.
 
 Trước khi đổi shipped CORE/skills/handbook ở bản tiếp theo, giữ SHA-256 của nội dung mặc định bản đã phát hành trong templates/default-history.json theo đúng key. Hash bỏ BOM đầu file và chuẩn hóa CRLF thành LF; lấy từ tarball đã phát hành, không lấy file người dùng đã chỉnh. Refresh chỉ nâng nội dung đã nhận diện, nên thiếu lịch sử sẽ khiến bản mặc định cũ được giữ như file tùy biến.
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0
+
+- Maintain reusable context from conversation by purpose, scope and future use; allow connected knowledge, policy, configuration and procedure updates without rigid keyword categories or a new folder/skill per request.
+- Add conditional context-maintenance, tool-policy and source-capture references while retaining seven shared project skills for every platform.
+- Release captured external documents or source using provenance and verified local snapshot hashes; detect source drift and exclude changed/missing captures from automatic context, without claiming upstream or runtime verification.
+- Require a current baseline/source/contract-bound impact report for completion, covering actual changed files, owners, relevant consumers/flows, wider inspected dependencies and linked analysis/check evidence.
+- Support configured provider priority and impact attempts with recorded scope, outcome and justified fallback; required evidence retains its original meaning.
+- Bind independent review to the entire receipt as well as source and contract, invalidating stale review after impact/evidence/DoD changes.
+- Explain wiki/rule/skill/config roles, when to update each and mixed conversational requests in the Vietnamese README/handbook; show the currently usable installation command first.
+- Preserve recognized 0.3.0 defaults during upgrades and extend regression/packed-install checks for impact, provider fallback and captured knowledge.
+
 ## 0.3.0
 
 - Ground discovery in the original request, inspected source/flow and decision provenance; block approval/execution while discovery is missing, pending or has material open questions. Legacy records remain readable and revisable.

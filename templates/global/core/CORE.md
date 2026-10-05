@@ -1,6 +1,6 @@
 ---
 id: company-core
-version: 1.1.0
+version: 1.2.0
 level: core
 status: active
 ---
@@ -25,6 +25,12 @@ MUST invoke interview when material uncertainty remains after inspection. Ask a 
 
 Choose routine tools, algorithms and implementation details autonomously within known intent. Do not impose a universal stack or questionnaire. A clear implementation request already authorizes its semantics; analysis, planning or an attached file alone does not. Recheck latest steering after a handoff; stale decisions require revision before dependent work.
 
+## Keep useful context from conversation
+
+For requests to retain knowledge, revise working policy, adopt tools or improve repeatable procedures, MUST use pipeline's context-maintenance reference. Decide by purpose, scope, authority, evidence and future retrieval, not rigid keywords or document type. One request can update several linked parts. Reuse existing contexts/rules/skills; keep sourced knowledge separate from authoritative constraints and concrete configuration while linking them. Clear requested maintenance is already authorized within its scope; perform it while idle. Do not make users operate CRUD, create a folder/skill per chat, or treat saving a reference as permission to execute it.
+
+“All agents in this workspace” means all roles/platforms in the current repository, not all projects sharing a user home. Persist that scope in repo CORE or a mandatory local rule. MUST NOT amend global CORE/user-home policy for a repository-only request; cross-project scope must be explicitly requested.
+
 ## Ground the work and prove it
 
 1. MUST use project-scoped semantic/LSP/MCP tools for definitions, references, callers and type relations. Text search is a fallback for literals/config/assets, unsupported/unindexed code, unavailable/failing providers or dynamic-dispatch cross-checks. Record the limitation; another repo's index is not evidence.
@@ -32,7 +38,7 @@ Choose routine tools, algorithms and implementation details autonomously within 
 3. MUST load every matched specialist rule. Wiki/diagrams orient discovery; current source/contracts/live checks establish truth. Do not claim architecture or conventions without references.
 4. MUST use meaningful failing behavior/reproduction checks before feasible logic fixes, then verify corrections and regressions. Check depth follows behavior and risk; editorial/literal edits need no ceremonial tests. Do not weaken checks or use self-written tests as independent proof of intent.
 5. MUST preserve agreed scope. Explain necessary mechanical expansion; clarify unsettled product/business/public-contract changes. Reviewer advice is a hypothesis, not authority to amend intent.
-6. MUST map acceptance to implementation and evidence-backed DoD, including current runtime observations where required and fresh independent review when configured. Failed, skipped, user-owned or unavailable required checks are not passes. Process success, configuration, status and self-attestation do not prove correctness.
+6. MUST map acceptance to implementation and evidence-backed DoD, including current runtime observations where required and a current impact report covering changed files, owners, relevant consumers/flows, preserved behavior, wider inspected boundaries and linked checks. Material impact gaps block DONE. Fresh independent review when configured binds source, contract and the full receipt/impact. Failed, skipped, user-owned or unavailable required checks are not passes. Process success, configuration, status and self-attestation do not prove correctness.
 7. MUST keep relevant technical documentation consistent with material changed flows/contracts when required for the deliverable or existing project documentation. Explain actual ownership, entry points, behavior, preserved boundaries and verification. Do not publish a speculative design as implemented truth or create reports for every tiny edit.
 8. MUST keep CORE, rules, wiki, raw sources, workspace policy, skills and approved task semantics read-only during execution. Incorrect knowledge produces evidence-backed change requests; promotion requires authorized maintenance. Changed source/semantics invalidates prior proof as applicable.
 9. All roles MUST meet configured strong-model targets and high effort; the harness/operator selects actual available IDs. No implicit weaker fallback. Single implementer by default; delegation only within policy, capability and authorization.

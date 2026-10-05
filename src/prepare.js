@@ -23,6 +23,7 @@ export function renderBrief(manifest) {
     'Configured providers must be available in this harness and bound to this repo. Configuration is not live tool evidence.'
   ];
   output.push('Required evidence kinds: ' + (manifest.required_evidence || []).join(', '));
+  output.push('\n## Configured provider policy\n' + JSON.stringify(manifest.tool_policy || {}, null, 2));
   for (const group of ['rules', 'wiki', 'skills']) {
     output.push('\n## ' + group);
     for (const item of manifest.context[group]) output.push('\n### ' + item.id + '\nSource: ' + item.file + '\nSelection: ' + item.reasons.join('; ') + '\n\n' + item.text);
@@ -55,6 +56,7 @@ export async function prepare(id, options = {}) {
     task: { id, version: task.metadata.version, risk: task.metadata.risk, status: task.metadata.status, contract_sha256: contractHash(task) },
     contract: task.text, context, capabilities: capabilityRequirements(workspace, required),
     required_evidence: requiredEvidence,
+    tool_policy: Object.fromEntries(Object.entries(workspace.config.tools).filter(([, tool]) => tool.provider_first || tool.impact)),
     execution: { ...workspace.config.execution, minimum_effort: 'high', model_targets: workspace.config.execution.model_targets || ['Configured strong model'] },
     review: workspace.config.review, governance, source
   };

@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object", "additionalProperties": false,
+  "required": ["version", "status", "task_id", "contract_sha256", "source_digest", "baseline_digest", "changed_files", "wider_dependencies", "no_changes_reason", "unresolved", "conclusions", "lookups"],
+  "properties": {
+    "version": { "const": 1 }, "status": { "enum": ["pending", "complete"] },
+    "task_id": { "type": "string", "minLength": 1 },
+    "contract_sha256": { "$ref": "#/definitions/hash" }, "source_digest": { "$ref": "#/definitions/hash" }, "baseline_digest": { "$ref": "#/definitions/hash" },
+    "changed_files": { "$ref": "#/definitions/strings" },
+    "wider_dependencies": { "type": "string", "minLength": 1 }, "no_changes_reason": { "type": "string" },
+    "unresolved": { "$ref": "#/definitions/strings" },
+    "conclusions": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["paths", "owner", "consumers", "behavior", "evidence", "checks"],
+        "properties": {
+          "paths": { "$ref": "#/definitions/strings" },
+          "owner": { "type": "string", "minLength": 1 }, "consumers": { "type": "string", "minLength": 1 }, "behavior": { "type": "string", "minLength": 1 },
+          "evidence": { "$ref": "#/definitions/references" }, "checks": { "$ref": "#/definitions/references" }
+        }
+      }
+    },
+    "lookups": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["capability", "provider", "scope", "outcome", "evidence"],
+        "properties": {
+          "capability": { "type": "string", "minLength": 1 }, "provider": { "type": "string", "minLength": 1 }, "scope": { "type": "string", "minLength": 1 },
+          "outcome": { "enum": ["answered", "empty", "unsupported", "unavailable", "failed", "incomplete"] }, "evidence": { "$ref": "#/definitions/references" },
+          "fallback": {
+            "type": "object", "additionalProperties": false, "required": ["provider", "reason", "evidence"],
+            "properties": { "provider": { "type": "string", "minLength": 1 }, "reason": { "type": "string", "minLength": 1 }, "evidence": { "$ref": "#/definitions/references" } }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "strings": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "references": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+  }
+}

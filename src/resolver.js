@@ -3,6 +3,7 @@ import path from 'node:path';
 import { minimatch } from 'minimatch';
 import { fail, frontmatter, hash, readYaml, safePath, slash, validateSchema, walk } from './io.js';
 import { loadWorkspace } from './workspace.js';
+import { capturedSourceDrift, hasWikiVerification } from './knowledge.js';
 
 const stopwords = new Set(['the', 'and', 'for', 'with', 'from', 'this', 'that', 'must', 'not', 'into', 'when', 'using', 'only', 'before', 'after']);
 const terms = (text) => String(text || '').toLowerCase().split(/[^\p{L}\p{N}_-]+/u).filter((word) => word.length > 2 && !stopwords.has(word));
@@ -53,8 +54,10 @@ export async function wikiInventory(workspace) {
     const file = await safePath(root, entry.file);
     const page = await document(file, 'wiki');
     for (const key of ['id', 'version', 'released_at', 'status', 'owner', 'scope', 'verified_against']) if (!(key in page.metadata)) fail('INVALID_WIKI_PAGE', 'Wiki page requires ' + key + ': ' + file);
-    if (page.metadata.status === 'active' && (!page.metadata.released_at || !page.metadata.verified_against)) fail('INVALID_WIKI_PAGE', 'Active wiki needs a release date and verified revision: ' + file);
-    pages.push({ ...page, context, routing: entry });
+    if (page.metadata.status === 'active' && !hasWikiVerification(page.metadata)) fail('INVALID_WIKI_PAGE', 'Active wiki needs a release date and verified revision or captured sources: ' + file);
+    if (page.metadata.status === 'active' && page.metadata.verified_sources?.length && !page.metadata.verification_scope) fail('INVALID_WIKI_PAGE', 'Captured sources need verification_scope: ' + file);
+    const drift = await capturedSourceDrift(workspace, page.metadata);
+    pages.push({ ...page, context, routing: entry, captured_source_drift: drift });
   }
   return pages;
 }
@@ -80,9 +83,10 @@ export async function resolveContext(workspace, input) {
   const mandatory = rules.filter((rule) => rule.level === 'core').map((rule) => ({ ...rule, reasons: ['mandatory'] }));
   const matched = scored(rules.filter((rule) => rule.level !== 'core' && (!rule.metadata.status || rule.metadata.status === 'active')), input, (rule) => rule.metadata);
   const pages = await wikiInventory(workspace);
-  const wiki = scored(pages.filter((page) => page.metadata.status === 'active'), input, (page) => page.routing);
+  const usable = (page) => page.metadata.status === 'active' && !page.captured_source_drift.length;
+  const wiki = scored(pages.filter(usable), input, (page) => page.routing);
   const related = new Set(wiki.flatMap((page) => page.routing.related || []));
-  for (const page of pages) if (page.metadata.status === 'active' && related.has(page.context) && !wiki.some((p) => p.context === page.context)) wiki.push({ ...page, score: 50, reasons: ['related context'] });
+  for (const page of pages) if (usable(page) && related.has(page.context) && !wiki.some((p) => p.context === page.context)) wiki.push({ ...page, score: 50, reasons: ['related context'] });
   const allSkills = await skillInventory(workspace);
   const explicit = input.skills.map((name) => {
     const skill = allSkills.find((item) => item.id === name);

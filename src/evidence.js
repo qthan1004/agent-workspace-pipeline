@@ -5,6 +5,7 @@ import { contractHash, readTask, requireApproved } from './tasks.js';
 import { readPrepared } from './prepare.js';
 import { assertGovernance, changedFiles, sourceSnapshot } from './snapshot.js';
 import { matchesPath } from './resolver.js';
+import { reviewReceiptHash, validateImpact } from './impact.js';
 
 export async function evidenceState(id, options = {}) {
   requireId(id);
@@ -60,6 +61,7 @@ export async function evidenceRecord(id, options = {}) {
   const entry = { id: options.entry || options.kind + '-' + (receipt.evidence.length + 1), kind: options.kind, description: options.description, artifact: options.artifact, sha256: hash(await fs.readFile(file)), result: 'passed' };
   if (options.provider) entry.provider = options.provider;
   if (options.symbol) entry.symbol = options.symbol;
+  if (options.fallbackReason) entry.fallback_reason = options.fallbackReason;
   for (const [option, field] of [['references', 'references'], ['inspected', 'inspected']]) if (options[option] !== undefined) {
     const count = Number(options[option]);
     if (!Number.isInteger(count) || count < 0) fail('INVALID_COUNT', field + ' must be a nonnegative integer.');
@@ -70,6 +72,23 @@ export async function evidenceRecord(id, options = {}) {
   receipt.evidence.push(entry);
   await writeManaged(state.workspace.repo, receiptName(id, options), JSON.stringify(receipt, null, 2) + '\n');
   return entry;
+}
+export async function evidenceImpact(id, options = {}) {
+  const state = await evidenceState(id, options);
+  const { receipt } = await readReceipt(state.workspace, id, options);
+  if (options.artifact) {
+    const bytes = await fs.readFile(await safePath(state.workspace.repo, options.artifact));
+    const pointer = { artifact: options.artifact, sha256: hash(bytes) };
+    const report = await validateImpact(state, receipt, pointer);
+    receipt.impact = pointer;
+    await writeManaged(state.workspace.repo, receiptName(id, options), JSON.stringify(receipt, null, 2) + '\n');
+    return { ...pointer, report };
+  }
+  const changed = changedFiles(state.baseline.source.files, state.source.files);
+  const report = { version: 1, status: 'pending', task_id: id, contract_sha256: contractHash(state.task), source_digest: state.source.digest, baseline_digest: state.baseline.source.digest, changed_files: changed, wider_dependencies: '', no_changes_reason: '', unresolved: [], conclusions: [], lookups: [] };
+  const artifact = '.agent/evidence/' + id + '/impact-' + report.contract_sha256.slice(0, 12) + '-' + state.source.digest.slice(0, 12) + '.json';
+  const result = await writeNew(state.workspace.repo, artifact, JSON.stringify(report, null, 2) + '\n');
+  return { ...result, artifact, report: result.created ? report : await readJson(result.file) };
 }
 async function verifyArtifact(workspace, entry) {
   const file = await safePath(workspace.repo, entry.artifact);
@@ -87,6 +106,11 @@ export async function validateEvidence(id, options = {}) {
   if (receipt.source_digest !== state.source.digest) errors.push('Source changed since verification; rerun checks and independent review.');
   const entries = new Map();
   const changed = changedFiles(state.baseline.source.files, state.source.files);
+  try { await validateImpact(state, receipt); }
+  catch (error) {
+    if (!['IMPACT_REQUIRED', 'IMPACT_GATE_FAILED', 'SCHEMA_INVALID'].includes(error.code)) throw error;
+    errors.push(error.message, ...(error.details || []));
+  }
   for (const entry of receipt.evidence) {
     if (entries.has(entry.id)) errors.push('Duplicate evidence ID: ' + entry.id);
     entries.set(entry.id, entry);
@@ -122,7 +146,7 @@ export async function validateEvidence(id, options = {}) {
   if (state.workspace.config.review.independent && !receipt.review) errors.push('Fresh independent review is required.');
   if (receipt.review) {
     await verifyArtifact(state.workspace, receipt.review);
-    if (receipt.review.source_digest !== state.source.digest || receipt.review.contract_sha256 !== contractHash(state.task)) errors.push('Independent review is stale.');
+    if (receipt.review.source_digest !== state.source.digest || receipt.review.contract_sha256 !== contractHash(state.task) || receipt.review.receipt_sha256 !== reviewReceiptHash(receipt)) errors.push('Independent review is stale: source, contract, impact or receipt changed.');
   }
   if (errors.length) fail('EVIDENCE_GATE_FAILED', 'Completion evidence is insufficient', errors);
   return { valid: true, task_id: id, contract_sha256: contractHash(state.task), source_digest: state.source.digest, evidence: receipt.evidence.length, dod: receipt.dod.length, changed_files: changed };

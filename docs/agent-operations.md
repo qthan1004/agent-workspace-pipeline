@@ -28,6 +28,14 @@ Markdown plan là input, không tự cấp quyền implement chỉ vì file đư
 
 ## 1. CRUD một Task Contract
 
+### Nhận yêu cầu qua chat: không phân loại bằng từ khóa
+
+Agent chọn cách xử lý theo outcome, scope, authority, nguồn và cách dùng lại. Một message có thể chứa công việc sản phẩm, knowledge curation, policy/config hoặc procedure changes. Xem pipeline/references/context-maintenance.md; chỉ đọc tool-policy/source-capture khi cần. Người dùng không đặt ID, tự điền contract hay chọn ngăn lưu.
+
+Đọc cấu trúc hiện tại và tái sử dụng context/rule/skill gần nhất. Kiến thức mô tả sự thật có nguồn; rule chứa ràng buộc; skill chứa procedure; config chứa settings thật; task giữ tiến độ; docs giữ thiết kế implement. Các vai trò liên kết, không loại trừ nhau và không phải checklist buộc tạo đủ mọi loại.
+
+“Lưu để sau dùng”, “từ nay ưu tiên…” hoặc “cập nhật policy…” có thể đã cấp quyền maintenance trong scope cụ thể. Thực hiện khi idle; không sửa governance dưới execution.lock rồi gọi prepare lại để xóa dấu thay đổi. Nếu chưa có quyền maintenance, dùng request-fix. Không chuyển ví dụ giả định thành lệnh cài tool/test API thật.
+
 Các lệnh dưới đây do agent thực hiện. CRUD là Create / Read / Update / Delete: tạo, đọc, cập nhật và xóa khỏi danh sách hoạt động.
 
 ### Create: tạo task
@@ -278,6 +286,24 @@ Không ghi kind=semantic để tự cấp phép. Dừng, escalation và cập nh
 
 ### Bước 5: independent review trong fresh context
 
+Trước review, tạo và hoàn tất impact report:
+
+~~~sh
+agent-workspace evidence impact DEMO-1
+~~~
+
+CLI tạo draft pending tại .agent/evidence/DEMO-1/impact-<contract>-<source>.json và giữ draft đã có. Agent điền theo source/tools đã inspect rồi attach:
+
+~~~sh
+agent-workspace evidence impact DEMO-1 --artifact .agent/evidence/DEMO-1/impact-<contract>-<source>.json
+~~~
+
+Các placeholder hash là path CLI vừa trả, agent lấy giá trị thực. Report chứa task/contract/source/baseline hashes và exact changed_files; status=complete; wider_dependencies nêu boundary và dependencies rộng hơn thực sự đã inspect; unresolved phải rỗng. conclusions nhóm những path liên quan và nêu owner, consumers trực tiếp/gián tiếp phù hợp, behavior thay đổi/giữ, evidence IDs phân tích E1/E2 và checks IDs E2/E3/E5 tương xứng. Mỗi file thay đổi phải được phủ; không cần một conclusion cho mỗi file. Không đổi source thì nêu no_changes_reason có bằng chứng. Schema ở schemas/impact.json; report là bản ghi kiểm chứng, không quy định solution.
+
+lookups ghi capability/provider/scope/outcome/evidence và fallback nếu có. outcome là answered/empty/unsupported/unavailable/failed/incomplete. Fallback cần reason thực tế và evidence riêng; query answered không cho phép tự ghi fallback. “Empty” chỉ nói về query đã chạy. Report chưa giải quyết material uncertainty không được attach/finish. Analysis-only có thể trả impact findings mà không dựng completion receipt.
+
+Capture phân tích/checks vào evidence entries trước attach. Text inspection/lỗi tool có thể là E2; E1 vẫn cần semantic output thực tế. --fallback-reason ở evidence record lưu lý do khi áp dụng, không đổi kind hoặc miễn required evidence. Report/entries/hash đủ chỉ chứng minh binding; reviewer kiểm tra substance.
+
 ~~~powershell
 $review = agent-workspace review prepare DEMO-1 --json | ConvertFrom-Json
 $review.file
@@ -285,13 +311,13 @@ $review.file
 
 Mở file đó ở một phiên reviewer mới với model mạnh/high. Reviewer đọc contract, rules/wiki/source, diff/change artifact và receipt; kiểm tra substance của evidence. Không dùng cả executor transcript làm kết luận thay cho fresh review.
 
-Reviewer lưu kết quả thật vào .agent/evidence/DEMO-1/review.txt, nêu source_digest và contract_sha256 đã review. Khi reviewer pass:
+Reviewer lưu kết quả thật vào .agent/evidence/DEMO-1/review.txt, nêu source_digest, contract_sha256 và receipt_sha256 đã review. Khi reviewer pass:
 
 ~~~powershell
-agent-workspace review record DEMO-1 --by "Independent reviewer" --artifact .agent/evidence/DEMO-1/review.txt --result passed --source-digest $review.source_digest --contract-sha256 $review.contract_sha256
+agent-workspace review record DEMO-1 --by "Independent reviewer" --artifact .agent/evidence/DEMO-1/review.txt --result passed --source-digest $review.source_digest --contract-sha256 $review.contract_sha256 --receipt-sha256 $review.receipt_sha256
 ~~~
 
-Chỉ truyền hashes của revision reviewer đã xem. Sau khi source đổi, review cũ không được đóng dấu lại bằng hash mới.
+Chỉ truyền hashes của revision reviewer đã xem. Receipt hash bao phủ impact pointer/evidence/DoD/decisions và các fields còn lại trừ review. Source, contract, impact hoặc receipt đổi thì phải review lại; không đóng dấu report cũ bằng hash mới. Finalize receipt trước review, không thay DoD/implementation_complete sau review.
 
 ### Bước 6: validate và finish
 
@@ -373,6 +399,22 @@ Lệnh tạo YAML trong .agent/change-requests/, giữ nguyên rule. Maintainer 
 
 ## 5. CRUD wiki và raw onboarding sources
 
+Đối với tài liệu ngoài Git hoặc supplied API/reference: lưu nguồn gốc một lần trong .agent/raw/<context>/ nếu cần, curate trang domain đang có, cập nhật MAP tags/symbols/description và INDEX links. Dùng source-capture reference của wiki-maintenance; không tạo page cho mỗi endpoint/chat. Thử resolve một câu hỏi tương lai. Ghi knowledge khác với permission chạy API; user yêu cầu lưu không đồng nghĩa yêu cầu test.
+
+Ngoài reviewed Git revision, active page có thể dùng verified_sources cho snapshot nguồn đã đọc:
+
+~~~yaml
+verified_against: ''
+verification_scope: documentation
+verified_sources:
+  - file: .agent/raw/checkout/openapi.yaml
+    sha256: <actual-64-character-sha256>
+    origin: <actual-source-url-or-supplied-file>
+    captured_at: <actual-capture-date>
+~~~
+
+Giữ metadata id/version/released_at/status/owner/scope; scope là path ứng dụng liên quan nếu có, không bịa path. verification_scope có thể là documentation hoặc source. Agent lấy hash từ file thực, không copy placeholder. Release kiểm tra file tồn tại và khớp hash; wiki check-stale báo captured-sources-unchanged hoặc potentially-stale. Trang có captured nguồn bị đổi/mất bị loại khỏi auto context; show/list vẫn dùng để inspect/revise. Hash local không kiểm tra upstream/live server; kết quả stale check ghi upstream: not-checked. Trước test sau này, xác minh freshness phù hợp. Nếu dùng cả revision và snapshots, kiểm tra cả hai.
+
 Raw sources giữ tại .agent/raw/. Một page wiki đại diện bounded context/concept, có summary, source links, critical contracts và verification entry points.
 
 ~~~powershell
@@ -453,6 +495,10 @@ Skill local cùng tên override skill global. Task có thể khai báo skills: [
 Các bộ skills bên ngoài có thể được maintainer chọn/cài bổ sung cùng references và giấy phép gốc. Không auto-load toàn bộ thư viện React vào project không dùng React. Runtime mặc định dùng 7 skill đã được điều chỉnh theo pipeline này.
 
 ## 7. Cấu hình capabilities và custom harness
+
+Yêu cầu cài/thay tool được agent xử lý theo pipeline/references/tool-policy.md: inspect harness/settings/docs chính thức, setup trong scope được phép, thử thao tác thật đúng project, cập nhật config và policy phù hợp cho tất cả roles/platforms. Không hardcode provider theo ví dụ và không sửa global home cho yêu cầu project-only.
+
+Một capability có thể khai báo thêm provider_first: true để ưu tiên provider và impact: true để completion bắt buộc ghi attempt/coverage trong impact report. provider_first yêu cầu provider khác null. required: true có nghĩa availability là pre-execution gate; required: false với priority cho phép discovery fallback theo policy, không miễn E1/E3 nếu task yêu cầu. CORE hoặc level: core rule giữ ràng buộc toàn workspace; specialist chỉ áp dụng khi match. Config không tự kết nối MCP và không thay thế working agreement/skill.
 
 Mở .agent/workspace.yaml trong maintenance được phép:
 

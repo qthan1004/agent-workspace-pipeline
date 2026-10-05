@@ -37,10 +37,11 @@ export const help = [
   '  skills list | show <name> | resolve <query>',
   '',
   'Agent internals — evidence / fresh review:',
-  '  evidence init | snapshot | changes | record | validate <id>',
+  '  evidence init | snapshot | changes | impact | record | validate <id>',
+  '  evidence impact <id> [--artifact <completed-report.json>]  (draft, then validate/attach)',
   '  evidence record <id> --kind E1..E5 --artifact <file> --description <text> --result passed',
   '  review prepare <id>',
-  '  review record <id> --by <reviewer> --artifact <file> --result passed --source-digest <hash> --contract-sha256 <hash>',
+  '  review record <id> --by <reviewer> --artifact <file> --result passed --source-digest <hash> --contract-sha256 <hash> --receipt-sha256 <hash>',
   '  learn collect --task <id> --reason <text> --evidence <file>',
   '  learn propose --category <category> --reason <pattern> --evidence <file> --proposed-change <text>',
   '',
@@ -48,7 +49,7 @@ export const help = [
   'Use --file <repo-relative-receipt.json> for an alternate evidence receipt.',
   'See README.md for conversational usage; docs/agent-operations.md covers internal CRUD, artifacts and troubleshooting.'
 ].join('\n');
-const stringFlags = ['repo', 'home', 'format', 'name', 'by', 'from', 'file', 'kind', 'artifact', 'description', 'result', 'entry', 'provider', 'symbol', 'references', 'inspected', 'reason', 'proposed-change', 'type', 'task', 'category', 'source-digest', 'contract-sha256', 'distribution', 'wiki-dir'];
+const stringFlags = ['repo', 'home', 'format', 'name', 'by', 'from', 'file', 'kind', 'artifact', 'description', 'result', 'entry', 'provider', 'symbol', 'references', 'inspected', 'reason', 'proposed-change', 'type', 'task', 'category', 'source-digest', 'contract-sha256', 'receipt-sha256', 'fallback-reason', 'distribution', 'wiki-dir'];
 const repeatFlags = ['with', 'path', 'symbol', 'tag', 'skill', 'evidence'];
 const booleanFlags = ['help', 'version', 'json', 'draft', 'dry-run', 'maintenance', 'brief', 'refresh'];
 const flags = Object.fromEntries([
@@ -71,10 +72,10 @@ const allowed = {
   'wiki new': ['maintenance', 'by', 'description'], 'wiki update': ['from', 'maintenance', 'by', 'description', 'tag', 'symbol'],
   'wiki delete': ['maintenance', 'by'], 'wiki request-fix': ['reason', 'proposed-change', 'evidence', 'type'],
   'skills list': [], 'skills show': [], 'skills resolve': ['path', 'symbol', 'tag', 'skill'],
-  'evidence init': ['file'], 'evidence snapshot': [], 'evidence changes': [],
-  'evidence record': ['file', 'kind', 'artifact', 'description', 'result', 'entry', 'provider', 'symbol', 'references', 'inspected'],
+  'evidence init': ['file'], 'evidence snapshot': [], 'evidence changes': [], 'evidence impact': ['file', 'artifact'],
+  'evidence record': ['file', 'kind', 'artifact', 'description', 'result', 'entry', 'provider', 'symbol', 'references', 'inspected', 'fallback-reason'],
   'evidence validate': ['file'], 'review prepare': ['file'],
-  'review record': ['file', 'by', 'artifact', 'result', 'source-digest', 'contract-sha256'],
+  'review record': ['file', 'by', 'artifact', 'result', 'source-digest', 'contract-sha256', 'receipt-sha256'],
   'learn collect': ['task', 'reason', 'evidence'], 'learn propose': ['category', 'reason', 'proposed-change', 'evidence']
 };
 const summary = (item) => ({ id: item.context || item.id, file: item.file, version: item.metadata.version, status: item.metadata.status, level: item.level, scope: item.scope, score: item.score, reasons: item.reasons });
@@ -94,7 +95,7 @@ export async function main(argv) {
     const noTarget = ['bootstrap', 'init', 'setup', 'doctor', 'repo init', 'repo inspect', 'adapter install', 'task list', 'rules list', 'wiki list', 'wiki check-stale', 'skills list', 'learn collect', 'learn propose'];
     if (noTarget.includes(command) && positional.length || !noTarget.includes(command) && !positional.length || !queryCommands.includes(command) && positional.length > 1) fail('INVALID_ARGUMENTS', 'Unexpected/missing arguments for ' + command + '. Run --help.');
     const target = queryCommands.includes(command) ? positional.join(' ') : positional[0];
-    const options = { ...values, wikiDir: values['wiki-dir'], dryRun: values['dry-run'], proposedChange: values['proposed-change'], sourceDigest: values['source-digest'], contractSha256: values['contract-sha256'], paths: values.path, symbols: values.symbol, tags: values.tag, skills: values.skill };
+    const options = { ...values, wikiDir: values['wiki-dir'], dryRun: values['dry-run'], proposedChange: values['proposed-change'], sourceDigest: values['source-digest'], contractSha256: values['contract-sha256'], receiptSha256: values['receipt-sha256'], fallbackReason: values['fallback-reason'], paths: values.path, symbols: values.symbol, tags: values.tag, skills: values.skill };
     if (['run', 'prepare'].includes(command) && values.with) {
       if (values.with.length !== 1 || values.with[0].includes(',')) fail('INVALID_OPTION', command + ' executes/prepares one harness; use a single --with value.');
       options.with = values.with[0];
@@ -149,6 +150,7 @@ export async function main(argv) {
       case 'evidence init': result = await api.evidenceInit(target, options); break;
       case 'evidence snapshot': result = await api.evidenceSnapshot(target, options); break;
       case 'evidence changes': result = await api.evidenceChanges(target, options); break;
+      case 'evidence impact': result = await api.evidenceImpact(target, options); break;
       case 'evidence record': result = await api.evidenceRecord(target, options); break;
       case 'evidence validate': result = await api.validateEvidence(target, options); break;
       case 'review prepare': { const review = await api.prepareReview(target, options); result = json ? { ...review, prompt: undefined } : review.prompt; break; }

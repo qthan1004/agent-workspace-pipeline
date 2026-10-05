@@ -9,6 +9,8 @@ The user interacts through conversation, questions or supplied documents, includ
 
 All platforms use one project skills directory, '.agent/skills' by default (see 'skills.local' in the config). Resolve a workflow with 'skills show <name>' rather than another platform's similarly named skill. No platform-specific skill copies, links or slash-command registration are required. The shared router is '.agent/ADAPTER.md'.
 
+For conversational requests to retain information, change policy, adopt tools or improve procedures, also load pipeline and its context-maintenance reference. Route by purpose, scope and future use, allowing several linked updates rather than a keyword taxonomy. Reuse existing organization. Perform clearly authorized governance maintenance while idle; saving a reference alone does not request executing it.
+
 Available Agent Workspace workflows (read the selected workflow on demand):
 
 {{SKILLS}}
@@ -25,5 +27,5 @@ Use 'prepare <id> --draft' while planning, and 'prepare <id>' after approval, bo
 
 Execute the approved contract with the configured strong model and high effort. Preserve semantic scope and read-only governance. Use harness-native tools and lifecycle; delegate only when authorized and useful.
 
-Capture real evidence, request fresh independent review when configured, then use 'agent-workspace evidence validate <id>' and 'task finish <id>'. Harness exit zero alone does not complete a task. Semantic escalation and merge remain human gates.
+Capture real evidence and attach a current impact report with 'evidence impact'. Request fresh independent review when configured, binding source, contract and receipt hashes, then use 'agent-workspace evidence validate <id>' and 'task finish <id>'. Harness exit zero alone does not complete a task. Semantic escalation and merge remain human gates.
 <!-- agent-workspace:end -->

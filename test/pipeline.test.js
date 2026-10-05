@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { stringify } from 'yaml';
 import * as api from '../src/index.js';
-import { exists, frontmatter, inside, markdown, readYaml, safePath } from '../src/io.js';
+import { exists, frontmatter, hash, inside, markdown, readYaml, safePath } from '../src/io.js';
 import { readTask, sections } from '../src/tasks.js';
 import { governanceSnapshot, sourceSnapshot } from '../src/snapshot.js';
 import { capture } from '../src/process.js';
@@ -41,7 +41,7 @@ async function approved(f, id = 'DEMO-1', edit = () => {}) {
   await api.approveTask(id, { ...f.options, by: 'fixture-human' });
   return id;
 }
-async function passingReceipt(f, id) {
+async function passingReceipt(f, id, lookups = []) {
   await api.evidenceInit(id, f.options);
   const delta = await api.evidenceChanges(id, f.options);
   await api.evidenceRecord(id, { ...f.options, kind: 'E4', artifact: delta.artifact, entry: 'diff', description: 'Changed files inspected.', result: 'passed' });
@@ -53,11 +53,141 @@ async function passingReceipt(f, id) {
   receipt.decisions = [{ change: 'Value helper', reason: 'The approved behavior requires this helper.' }];
   receipt.dod = [{ id: 'D1', evidence: ['diff', 'tests'] }];
   await fs.writeFile(receiptPath, JSON.stringify(receipt, null, 2));
+  await attachImpact(f, id, lookups);
   await f.write('.agent/evidence/review.txt', 'Fresh independent fixture review passed.');
-  const snapshot = await api.evidenceSnapshot(id, f.options);
-  await api.recordReview(id, { ...f.options, by: 'fixture-reviewer', artifact: '.agent/evidence/review.txt', result: 'passed', sourceDigest: snapshot.source_digest, contractSha256: snapshot.contract_sha256 });
+  const snapshot = await api.prepareReview(id, f.options);
+  await api.recordReview(id, { ...f.options, by: 'fixture-reviewer', artifact: '.agent/evidence/review.txt', result: 'passed', sourceDigest: snapshot.source_digest, contractSha256: snapshot.contract_sha256, receiptSha256: snapshot.receipt_sha256 });
   return { receiptPath, receipt: JSON.parse(await fs.readFile(receiptPath, 'utf8')) };
 }
+
+async function attachImpact(f, id, lookups = []) {
+  await f.write('.agent/evidence/inspection.txt', 'Synthetic IO fixture: inspected repository boundary, owner, callers and alternate flows.');
+  await api.evidenceRecord(id, { ...f.options, kind: 'E2', entry: 'inspection', artifact: '.agent/evidence/inspection.txt', description: 'Synthetic source inspection fixture.', result: 'passed' });
+  const draft = await api.evidenceImpact(id, f.options);
+  const report = draft.report;
+  report.status = 'complete';
+  report.wider_dependencies = 'Synthetic single-repository fixture; no other project dependencies established by inspected inventory.';
+  report.no_changes_reason = report.changed_files.length ? '' : 'IO fixture checks a verified no-change outcome.';
+  report.conclusions = [{ paths: report.changed_files, owner: 'Private fixture helper or no-change boundary.', consumers: 'Direct fixture test; no existing indirect consumers in inspected fixture.', behavior: 'Requested helper behavior; existing defaults preserved.', evidence: ['inspection'], checks: ['tests'] }];
+  report.lookups = lookups;
+  await f.write(draft.artifact, JSON.stringify(report, null, 2));
+  await api.evidenceImpact(id, { ...f.options, artifact: draft.artifact });
+  return { ...draft, report };
+}
+
+test('completion requires an impact report even when independent review is disabled', async (t) => {
+  const f = await fixture(t), id = await approved(f, 'IMPACT-MISSING');
+  const config = await readYaml(path.join(f.options.repo, '.agent/workspace.yaml'));
+  config.review.independent = false;
+  await f.write('.agent/workspace.yaml', stringify(config));
+  await api.prepare(id, f.options);
+  const { receiptPath, receipt } = await passingReceipt(f, id);
+  delete receipt.impact; delete receipt.review;
+  await fs.writeFile(receiptPath, JSON.stringify(receipt));
+  await assert.rejects(api.finishTask(id, f.options), (error) => error.code === 'EVIDENCE_GATE_FAILED' && error.details.some((detail) => /impact/i.test(detail)));
+});
+
+for (const scenario of ['pending', 'uncovered-path', 'missing-owner', 'missing-check', 'unknown-evidence', 'unresolved', 'stale-baseline']) {
+  test('impact report rejects ' + scenario, async (t) => {
+    const f = await fixture(t), id = await approved(f, 'IMPACT-' + scenario.toUpperCase());
+    await api.prepare(id, f.options);
+    await f.write('src/value.mjs', 'export const value = 42;');
+    await passingReceipt(f, id);
+    const receipt = JSON.parse(await fs.readFile(path.join(f.options.repo, '.agent/evidence/' + id + '.json')));
+    const report = JSON.parse(await fs.readFile(path.join(f.options.repo, receipt.impact.artifact)));
+    if (scenario === 'pending') report.status = 'pending';
+    if (scenario === 'uncovered-path') report.conclusions[0].paths = [];
+    if (scenario === 'missing-owner') report.conclusions[0].owner = '  ';
+    if (scenario === 'missing-check') report.conclusions[0].checks = [];
+    if (scenario === 'unknown-evidence') report.conclusions[0].evidence = ['invented'];
+    if (scenario === 'unresolved') report.unresolved = ['Unknown public consumer'];
+    if (scenario === 'stale-baseline') report.baseline_digest = '0'.repeat(64);
+    await f.write(receipt.impact.artifact, JSON.stringify(report));
+    await assert.rejects(api.evidenceImpact(id, { ...f.options, artifact: receipt.impact.artifact }));
+  });
+}
+
+test('changing evidence after review invalidates review without changing source', async (t) => {
+  const f = await fixture(t), id = await approved(f, 'RECEIPT-REVIEW');
+  await api.prepare(id, f.options);
+  await passingReceipt(f, id);
+  assert.equal((await api.validateEvidence(id, f.options)).valid, true);
+  await f.write('.agent/evidence/additional.txt', 'Additional observed result.');
+  await api.evidenceRecord(id, { ...f.options, kind: 'E2', entry: 'additional', artifact: '.agent/evidence/additional.txt', description: 'New evidence after review.', result: 'passed' });
+  await rejects(api.validateEvidence(id, f.options), 'EVIDENCE_GATE_FAILED');
+});
+
+test('re-attaching a revised impact report invalidates the existing review', async (t) => {
+  const f = await fixture(t), id = await approved(f, 'IMPACT-REVIEW');
+  await api.prepare(id, f.options);
+  const { receipt } = await passingReceipt(f, id);
+  const report = JSON.parse(await fs.readFile(path.join(f.options.repo, receipt.impact.artifact)));
+  report.wider_dependencies += ' Revised inspected boundary statement.';
+  await f.write(receipt.impact.artifact, JSON.stringify(report));
+  await api.evidenceImpact(id, { ...f.options, artifact: receipt.impact.artifact });
+  await rejects(api.validateEvidence(id, f.options), 'EVIDENCE_GATE_FAILED');
+});
+
+test('wiki can release a captured external document without inventing a Git revision', async (t) => {
+  const f = await fixture(t), authority = { ...f.options, maintenance: true, by: 'user-chat' };
+  await api.newWiki('checkout-api', authority);
+  const raw = 'openapi: 3.1.0\ninfo: { title: Checkout, version: 1 }\npaths: {}\n';
+  await f.write('.agent/raw/checkout/openapi.yaml', raw);
+  const page = frontmatter(await api.showWiki('checkout-api', f.options));
+  Object.assign(page.metadata, { version: '1.0.0', status: 'active', released_at: '2026-10-05', verification_scope: 'documentation', verified_sources: [{ file: '.agent/raw/checkout/openapi.yaml', sha256: hash(raw), origin: 'User supplied specification', captured_at: '2026-10-05' }] });
+  const candidate = path.join(f.directory, 'page.md');
+  await fs.writeFile(candidate, markdown(page.metadata, '# Checkout API\nDocumented contract; runtime not tested.'));
+  await api.updateWiki('checkout-api', { ...authority, from: candidate, tags: ['checkout', 'api'], description: 'Checkout payment API contracts and test entrypoints' });
+  assert.equal((await api.resolveQuery('wiki', 'checkout api', f.options))[0].context, 'checkout-api');
+  assert.equal((await api.staleWiki(f.options))[0].status, 'captured-sources-unchanged');
+  await f.write('.agent/raw/checkout/openapi.yaml', raw + '# changed\n');
+  assert.equal((await api.staleWiki(f.options))[0].status, 'potentially-stale');
+  assert.equal((await api.resolveQuery('wiki', 'checkout api', f.options)).length, 0);
+  await rejects(api.updateWiki('checkout-api', { ...authority, from: candidate }), 'WIKI_SOURCE_CHANGED');
+});
+
+for (const scenario of ['missing-attempt', 'wrong-provider', 'unjustified-fallback', 'justified-fallback']) {
+  test('preferred impact provider policy: ' + scenario, async (t) => {
+    const f = await fixture(t), id = await approved(f, 'PROVIDER-' + scenario.toUpperCase());
+    const config = await readYaml(path.join(f.options.repo, '.agent/workspace.yaml'));
+    config.tools.local_graph = { required: false, provider: 'fixture-graph', provider_first: true, impact: true };
+    await f.write('.agent/workspace.yaml', stringify(config));
+    await api.prepare(id, f.options);
+    const lookup = { capability: 'local_graph', provider: 'fixture-graph', scope: 'Synthetic fixture boundary and query.', outcome: 'empty', evidence: ['inspection'], fallback: { provider: 'source-inspection', reason: 'Synthetic empty-query fixture, no indexed result.', evidence: ['inspection'] } };
+    if (scenario === 'wrong-provider') lookup.provider = 'unpreferred-graph';
+    if (scenario === 'unjustified-fallback') lookup.outcome = 'answered';
+    const attempt = passingReceipt(f, id, scenario === 'missing-attempt' ? [] : [lookup]);
+    if (scenario === 'justified-fallback') {
+      await attempt;
+      assert.equal((await api.validateEvidence(id, f.options)).valid, true);
+    } else await rejects(attempt, 'IMPACT_GATE_FAILED');
+  });
+}
+
+test('captured wiki sources reject unsafe paths and detect missing files', async (t) => {
+  const f = await fixture(t), authority = { ...f.options, maintenance: true, by: 'user-chat' };
+  await api.newWiki('reference', authority);
+  const page = frontmatter(await api.showWiki('reference', f.options));
+  Object.assign(page.metadata, { version: '1.0.0', status: 'active', released_at: '2026-10-05', verification_scope: 'documentation', verified_sources: [{ file: '../outside.md', sha256: hash('ref'), origin: 'Fixture', captured_at: '2026-10-05' }] });
+  const from = path.join(f.directory, 'reference.md');
+  await fs.writeFile(from, markdown(page.metadata, '# Reference\nRetained document contract.'));
+  await rejects(api.updateWiki('reference', { ...authority, from }), 'UNSAFE_PATH');
+  page.metadata.verified_sources[0].file = '.agent/raw/missing.md';
+  await fs.writeFile(from, markdown(page.metadata, '# Reference\nRetained document contract.'));
+  await rejects(api.updateWiki('reference', { ...authority, from }), 'WIKI_SOURCE_CHANGED');
+});
+
+test('impact lookup cannot relabel an evidence provider', async (t) => {
+  const f = await fixture(t), id = await approved(f, 'PROVIDER-EVIDENCE');
+  const config = await readYaml(path.join(f.options.repo, '.agent/workspace.yaml'));
+  config.tools.local_graph = { required: false, provider: 'fixture-graph', provider_first: true, impact: true };
+  await f.write('.agent/workspace.yaml', stringify(config));
+  await api.prepare(id, f.options);
+  const { receiptPath, receipt } = await passingReceipt(f, id, [{ capability: 'local_graph', provider: 'fixture-graph', scope: 'Fixture boundary.', outcome: 'answered', evidence: ['inspection'] }]);
+  receipt.evidence.find((entry) => entry.id === 'inspection').provider = 'different-provider';
+  await fs.writeFile(receiptPath, JSON.stringify(receipt));
+  await rejects(api.evidenceImpact(id, { ...f.options, artifact: receipt.impact.artifact }), 'IMPACT_GATE_FAILED');
+});
 
 test('execution rejects a legacy contract without recorded intent discovery but permits inspection and revision', async (t) => {
   const f = await fixture(t), id = await approved(f, 'LEGACY');
@@ -242,6 +372,8 @@ test('outside-scope mechanical changes need exact paths and explanation', async 
   await rejects(api.validateEvidence(id, f.options), 'EVIDENCE_GATE_FAILED');
   receipt.scope_expansions = [{ kind: 'mechanical', reason: 'Necessary local wiring.', paths: ['outside.mjs'] }];
   await fs.writeFile(receiptPath, JSON.stringify(receipt));
+  const review = await api.prepareReview(id, f.options);
+  await api.recordReview(id, { ...f.options, by: 'fixture-reviewer', artifact: '.agent/evidence/review.txt', result: 'passed', sourceDigest: review.source_digest, contractSha256: review.contract_sha256, receiptSha256: review.receipt_sha256 });
   assert.equal((await api.validateEvidence(id, f.options)).valid, true);
 });
 test('old independent review cannot be restamped as current', async (t) => {
@@ -366,7 +498,7 @@ test('environment home overrides a checkout-specific home', async (t) => {
 });
 test('mandatory specialist evidence cannot be omitted from a task receipt', async (t) => {
   const f = await fixture(t), id = await approved(f);
-  await f.write('.agent/rules/value.md', markdown({ id: 'value-policy', level: 'specialist', status: 'active', paths: ['src/**'], required_evidence: ['E2'] }, '# Inspect literal configuration.'));
+  await f.write('.agent/rules/value.md', markdown({ id: 'value-policy', level: 'specialist', status: 'active', paths: ['src/**'], required_evidence: ['E3'] }, '# Observe required runtime behavior.'));
   await api.prepare(id, f.options);
   await passingReceipt(f, id);
   await rejects(api.validateEvidence(id, f.options), 'EVIDENCE_GATE_FAILED');
