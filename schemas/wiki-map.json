@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object", "required": ["version", "contexts"], "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 }, "released_at": { "type": "string" },
+    "contexts": {
+      "type": "object", "additionalProperties": {
+        "type": "object", "required": ["file", "description"], "additionalProperties": false,
+        "properties": {
+          "file": { "type": "string", "minLength": 1 }, "description": { "type": "string" },
+          "paths": { "$ref": "#/definitions/strings" }, "symbols": { "$ref": "#/definitions/strings" },
+          "tags": { "$ref": "#/definitions/strings" }, "related": { "$ref": "#/definitions/strings" }
+        }
+      }
+    }
+  },
+  "definitions": { "strings": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } } }
+}

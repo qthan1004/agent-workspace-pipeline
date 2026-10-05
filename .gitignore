@@ -1,0 +1,7 @@
+node_modules/
+*.tgz
+.test-artifacts/
+.agent-workspace/
+.agent/prepared/
+.agent/evidence/
+.agent/learning/

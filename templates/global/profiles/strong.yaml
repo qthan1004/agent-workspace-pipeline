@@ -1,0 +1,19 @@
+version: 1
+name: strong
+minimum_effort: high
+targets:
+  - Gemini 3.8+
+  - Claude Sonnet/Opus 5.0+
+  - GPT 5.6 Sol/Terra high+
+selection: harness-or-operator
+allow_weak_fallback: false
+roles:
+  SCOUT: read-only research; no semantic decisions
+  IMPLEMENTER: one approved task; implementation and local verification
+  VERIFIER: independent checks and runtime evidence
+  REVIEWER: fresh context; challenge contract compliance and regressions
+delegation:
+  default: single
+  max_subagents: 2
+  recursive: false
+  justification: independent uncertainty and clean ownership

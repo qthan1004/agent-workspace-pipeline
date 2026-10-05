@@ -1,0 +1,14 @@
+version: 1
+governance: proposal-only
+evidence:
+  E1: semantic definitions/references/callers/type relations
+  E2: literal/config/docs/text inspection
+  E3: runtime/browser/network reproduction
+  E4: diff and changed-file inspection
+  E5: tests/types/schemas/public contracts
+authority:
+  - mandatory process invariants and applicable repository rules
+  - approved task semantics
+  - live source/semantic/runtime/CI evidence
+  - released wiki orientation
+  - general model knowledge

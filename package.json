@@ -1,0 +1,30 @@
+{
+  "name": "agent-workspace-pipeline",
+  "version": "0.1.0",
+  "description": "Portable rules, skills, task contracts and evidence gates for existing agent harnesses",
+  "type": "module",
+  "bin": { "agent-workspace": "bin/agent-workspace.js" },
+  "exports": "./src/index.js",
+  "files": ["bin", "src", "templates", "schemas", "docs", "examples", "README.md", "CHANGELOG.md", "LICENSE"],
+  "engines": { "node": ">=22" },
+  "keywords": ["agent", "workspace", "coding", "pipeline", "task-contract", "evidence", "codex", "claude", "gemini"],
+  "repository": { "type": "git", "url": "git+https://github.com/qthan1004/agent-workspace-pipeline.git" },
+  "homepage": "https://github.com/qthan1004/agent-workspace-pipeline#readme",
+  "bugs": { "url": "https://github.com/qthan1004/agent-workspace-pipeline/issues" },
+  "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/" },
+  "scripts": {
+    "test": "node --test test/pipeline.test.js",
+    "check": "node scripts/check.mjs",
+    "prepack": "npm run check && npm test",
+    "smoke:packed": "node scripts/smoke-packed.mjs",
+    "smoke:registry": "node scripts/smoke-registry.mjs",
+    "release:check": "npm publish --dry-run"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "cross-spawn": "^7.0.6",
+    "minimatch": "^10.0.1",
+    "yaml": "^2.8.1"
+  },
+  "license": "MIT"
+}

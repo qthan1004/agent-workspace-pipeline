@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object", "additionalProperties": false,
+  "required": ["task_id", "task_version", "contract_sha256", "source_digest", "implementation_complete", "unresolved_semantics", "scope_expansions", "evidence", "dod", "decisions"],
+  "properties": {
+    "task_id": { "type": "string", "minLength": 1 },
+    "task_version": { "type": "integer", "minimum": 1 },
+    "contract_sha256": { "$ref": "#/definitions/hash" },
+    "source_digest": { "$ref": "#/definitions/hash" },
+    "implementation_complete": { "const": true },
+    "decisions": {
+      "type": "array", "minItems": 1,
+      "items": { "type": "object", "required": ["change", "reason"], "additionalProperties": false, "properties": { "change": { "type": "string", "minLength": 1 }, "reason": { "type": "string", "minLength": 1 } } }
+    },
+    "unresolved_semantics": { "type": "array", "maxItems": 0 },
+    "scope_expansions": {
+      "type": "array", "items": {
+        "type": "object", "required": ["kind", "reason", "paths"], "additionalProperties": false,
+        "properties": {
+          "kind": { "const": "mechanical" }, "reason": { "type": "string", "minLength": 1 },
+          "paths": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "required": ["id", "kind", "description", "artifact", "sha256", "result"], "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 }, "kind": { "enum": ["E1", "E2", "E3", "E4", "E5"] },
+          "description": { "type": "string", "minLength": 1 }, "artifact": { "type": "string", "minLength": 1 },
+          "sha256": { "$ref": "#/definitions/hash" }, "result": { "const": "passed" },
+          "provider": { "type": "string", "minLength": 1 }, "symbol": { "type": "string", "minLength": 1 },
+          "references": { "type": "integer", "minimum": 0 }, "inspected": { "type": "integer", "minimum": 0 },
+          "fallback_reason": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "dod": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "required": ["id", "evidence"], "additionalProperties": false,
+        "properties": { "id": { "type": "string", "minLength": 1 }, "evidence": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } } }
+      }
+    },
+    "review": {
+      "type": "object", "required": ["reviewer", "result", "source_digest", "contract_sha256", "artifact", "sha256"], "additionalProperties": false,
+      "properties": {
+        "reviewer": { "type": "string", "minLength": 1 }, "result": { "const": "passed" },
+        "source_digest": { "$ref": "#/definitions/hash" }, "contract_sha256": { "$ref": "#/definitions/hash" },
+        "artifact": { "type": "string", "minLength": 1 }, "sha256": { "$ref": "#/definitions/hash" }
+      }
+    }
+  },
+  "definitions": { "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" } }
+}

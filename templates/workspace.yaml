@@ -1,0 +1,43 @@
+version: 1
+cli:
+  distribution: npm
+project:
+  name: my-project
+policy:
+  global_core: ~/.agent-workspace/core/CORE.md
+  repo_core: .agent/CORE.md
+wiki:
+  index: .agent/wiki/INDEX.md
+  map: .agent/wiki/MAP.yaml
+  max_pages: 3
+skills:
+  global: ~/.agent-workspace/skills
+  local: .agent/skills
+  max_auto: 3
+execution:
+  default_strategy: single
+  recursive_delegation: false
+  max_subagents: 2
+  model_policy: adaptive
+  profile: strong
+  minimum_effort: high
+  model_targets:
+    - Gemini 3.8+
+    - Claude Sonnet/Opus 5.0+
+    - GPT 5.6 Sol/Terra high+
+tools:
+  typescript_semantic:
+    required: false
+    provider: null
+  semantic:
+    required: false
+    provider: null
+  browser:
+    required: false
+    provider: null
+  github:
+    required: false
+    provider: null
+review:
+  independent: true
+  provider: null
