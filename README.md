@@ -665,8 +665,9 @@ Validator kiểm tra schema, links, hashes, source freshness và governance. Nó
 
 ## 14. Phát triển và phát hành package
 
+Từ thư mục source chứa package.json:
+
 ~~~powershell
-Set-Location ./agent-workspace
 npm ci
 npm run check
 npm test
