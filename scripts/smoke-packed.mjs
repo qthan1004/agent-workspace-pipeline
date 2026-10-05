@@ -19,7 +19,7 @@ const initialized = await command('init');
 assert.deepEqual(initialized.repo.platforms, ['codex', 'claude', 'gemini', 'antigravity']);
 assert.equal(initialized.repo.skills.created, 7);
 assert.ok((await fs.readFile(path.join(repo, '.agent/.gitignore'), 'utf8')).includes('evidence/'));
-assert.equal(await command('skills', 'show', 'pipeline'), await fs.readFile(path.join(repo, '.agent/skills/pipeline/SKILL.md'), 'utf8'));
+assert.equal(await command('skills', 'show', 'pipeline'), (await fs.readFile(path.join(repo, '.agent/skills/pipeline/SKILL.md'), 'utf8')).replace(/\r\n/g, '\n'));
 assert.equal(await fs.readFile(path.join(home, 'handbook/agent-operations.md'), 'utf8'), await fs.readFile(path.join(packed, 'docs/agent-operations.md'), 'utf8'));
 for (const example of ['task.md', 'api-rule.md', 'demo/greet.mjs', 'demo/greet.test.mjs']) {
   assert.equal(await fs.readFile(path.join(home, 'examples', example), 'utf8'), await fs.readFile(path.join(packed, 'examples', example), 'utf8'));
