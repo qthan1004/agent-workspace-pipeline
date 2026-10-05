@@ -3,6 +3,19 @@ id: DEMO-1
 status: draft
 risk: low
 version: 1
+discovery:
+  status: pending
+  outcome: A private greeting helper with the two behaviors specified below.
+  sources:
+    - kind: plan
+      reference: examples/task.md
+      summary: This explicit demo specification requests greet with named and default greeting behavior.
+  flow: New private helper -> Node tests; confirm the target demo has no conflicting files or existing consumers before setting ready.
+  decisions:
+    - decision: Use ESM and the Node test runner without dependencies.
+      basis: source
+      reference: This demo specification and examples/demo/greet.test.mjs.
+  open_questions: []
 paths: [src/greet.mjs, test/greet.test.mjs]
 symbols: []
 tags: [feature, regression]
