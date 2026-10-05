@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { stringify } from 'yaml';
-import { copyTemplates, exists, expand, fail, frontmatter, homeDirectory, inside, markdown, packageRoot, readYaml, safePath, validateSchema, writeManaged, writeNew } from './io.js';
+import { copyTemplates, exists, expand, fail, frontmatter, homeDirectory, inside, packageRoot, readYaml, safePath, validateSchema, walk, writeManaged, writeNew } from './io.js';
 
 export const harnesses = ['codex', 'claude', 'gemini', 'antigravity', 'generic'];
 export const defaultHarnesses = ['codex', 'claude', 'gemini', 'antigravity'];
@@ -53,7 +53,7 @@ export async function loadWorkspace(options = {}) {
 export async function installAdapter(repo, harness = 'codex', options = {}) {
   if (!harnesses.includes(harness)) fail('UNKNOWN_HARNESS', 'Supported output adapters: ' + harnesses.join(', '));
   await assertInstallable(repo);
-  const filename = { codex: 'AGENTS.md', claude: 'CLAUDE.md', gemini: 'GEMINI.md', antigravity: '.agents/rules/agent-workspace.md', generic: '.agent/ADAPTER.md' }[harness];
+  const filename = { codex: 'AGENTS.md', claude: 'CLAUDE.md', gemini: 'GEMINI.md', antigravity: '.agent/rules/agent-workspace.md', generic: '.agent/ADAPTER.md' }[harness];
   const identity = JSON.parse(await fs.readFile(path.join(packageRoot, 'package.json'), 'utf8'));
   const config = await readYaml(await safePath(repo, '.agent/workspace.yaml'));
   await validateSchema('workspace', config);
@@ -65,7 +65,12 @@ export async function installAdapter(repo, harness = 'codex', options = {}) {
     specifier = repository + '/releases/download/v' + identity.version + '/' + tarball;
   }
   const invocation = 'npx --yes --package "' + specifier + '" agent-workspace';
-  const block = (await fs.readFile(path.join(packageRoot, 'templates/adapter.md'), 'utf8')).replaceAll('{{HARNESS}}', harness).replaceAll('{{CLI}}', invocation);
+  const inventory = [];
+  for (const file of await walk(path.join(packageRoot, 'templates/global/skills'))) if (path.basename(file) === 'SKILL.md') {
+    const { metadata } = frontmatter(await fs.readFile(file, 'utf8'));
+    inventory.push('- ' + metadata.name + ': ' + metadata.description);
+  }
+  const block = (await fs.readFile(path.join(packageRoot, 'templates/adapter.md'), 'utf8')).replaceAll('{{HARNESS}}', harness).replaceAll('{{CLI}}', invocation).replaceAll('{{SKILLS}}', inventory.join('\n'));
   const file = await safePath(repo, filename);
   if (!(await exists(file))) {
     const header = harness === 'antigravity' ? '---\ntrigger: always_on\ndescription: Use the Agent Workspace task, context and evidence pipeline.\n---\n\n' : '';
@@ -92,24 +97,14 @@ export async function installAdapter(repo, harness = 'codex', options = {}) {
 export async function installAdapters(repo, value, options = {}) {
   const selected = selectHarnesses(value);
   await assertInstallable(repo);
-  // One shared router keeps native skills independent of installation paths.
+  // All platforms route to the same project workflows; no native copies or links.
   const shared = await installAdapter(repo, 'generic', options);
   const adapters = [];
   for (const harness of selected) adapters.push({ harness, ...(harness === 'generic' ? shared : await installAdapter(repo, harness, options)) });
-  const directories = [...new Set(selected.flatMap((harness) => ({
-    codex: ['.agents/skills'], claude: ['.claude/skills'], gemini: ['.gemini/skills'],
-    antigravity: ['.agents/skills'], generic: []
-  })[harness]))];
-  const files = [];
-  const source = path.join(packageRoot, 'templates/global/skills');
-  const body = await fs.readFile(path.join(packageRoot, 'templates/native-skill.md'), 'utf8');
-  for (const entry of (await fs.readdir(source)).sort()) {
-    const skill = frontmatter(await fs.readFile(path.join(source, entry, 'SKILL.md'), 'utf8'));
-    const name = 'agent-workspace-' + skill.metadata.name;
-    const content = markdown({ name, description: skill.metadata.description }, body.replaceAll('{{SKILL}}', skill.metadata.name));
-    for (const directory of directories) files.push(await writeNew(repo, directory + '/' + name + '/SKILL.md', content));
-  }
-  return { platforms: selected, adapters, shared, native_skills: { directories, created: files.filter((item) => item.created).length, preserved: files.filter((item) => !item.created).length } };
+  const config = await readYaml(await safePath(repo, '.agent/workspace.yaml'));
+  const directory = await safePath(repo, config.skills.local);
+  const files = await copyTemplates(path.join(packageRoot, 'templates/global/skills'), directory);
+  return { platforms: selected, adapters, shared, skills: { directory: config.skills.local, created: files.filter((item) => item.created).length, preserved: files.filter((item) => !item.created).length } };
 }
 export async function initRepo(options = {}) {
   if (options.distribution && !['npm', 'github'].includes(options.distribution)) fail('UNKNOWN_DISTRIBUTION', 'Use --distribution npm or github.');
@@ -118,11 +113,16 @@ export async function initRepo(options = {}) {
   const home = homeDirectory(options.home);
   if (inside(home, repo)) fail('INVALID_WORKSPACE_HOME', 'The global workspace home must not contain the target repo.');
   await assertInstallable(repo);
+  if (options.wikiDir !== undefined) await safePath(repo, options.wikiDir);
   await safePath(repo, '.agent');
   await fs.mkdir(repo, { recursive: true });
   const template = await readYaml(path.join(packageRoot, 'templates/workspace.yaml'));
   template.cli.distribution = options.distribution || 'npm';
   template.project.name = options.name || path.basename(repo);
+  if (options.wikiDir !== undefined) {
+    template.wiki.index = path.join(options.wikiDir, 'INDEX.md').replaceAll('\\', '/');
+    template.wiki.map = path.join(options.wikiDir, 'MAP.yaml').replaceAll('\\', '/');
+  }
   if (options.home || process.env.AGENT_WORKSPACE_HOME) {
     template.workspace_home = home;
     template.policy.global_core = path.join(home, 'core/CORE.md').replaceAll('\\', '/');
@@ -130,16 +130,27 @@ export async function initRepo(options = {}) {
   }
   if (await exists(path.join(repo, 'tsconfig.json'))) template.tools.typescript_semantic.required = true;
   const config = await writeNew(repo, '.agent/workspace.yaml', stringify(template));
+  const settings = await readYaml(config.file);
+  await validateSchema('workspace', settings);
   const files = await copyTemplates(path.join(packageRoot, 'templates/repo'), repo);
+  // Honor existing wiki paths; initialization never relocates released knowledge.
+  const wikiSource = path.join(packageRoot, 'templates/wiki');
+  const wikiRoot = path.dirname(await safePath(repo, settings.wiki.map));
+  for (const source of await walk(wikiSource)) {
+    const relative = path.relative(wikiSource, source);
+    const destination = relative === 'INDEX.md' ? settings.wiki.index : relative === 'MAP.yaml' ? settings.wiki.map : path.relative(repo, path.join(wikiRoot, relative));
+    files.push(await writeNew(repo, destination, await fs.readFile(source, 'utf8')));
+  }
   files.push(await writeNew(repo, '.agent/.gitignore', await fs.readFile(path.join(packageRoot, 'templates/agent-ignore.txt'), 'utf8')));
   for (const directory of ['.agent/rules', '.agent/skills', '.agent/tasks', '.agent/raw', '.agent/change-requests']) await fs.mkdir(await safePath(repo, directory), { recursive: true });
   const integration = await installAdapters(repo, selected, options);
-  return { repo, config, adapter: integration.adapters[0], ...integration, created: files.filter((f) => f.created).length };
+  return { repo, config, adapter: integration.adapters[0], ...integration, wiki: { index: settings.wiki.index, map: settings.wiki.map }, created: files.filter((f) => f.created).length };
 }
 export async function bootstrap(options = {}) {
   if (options.distribution && !['npm', 'github'].includes(options.distribution)) fail('UNKNOWN_DISTRIBUTION', 'Use --distribution npm or github.');
   selectHarnesses(options.with);
   if (inside(homeDirectory(options.home), path.resolve(options.repo || options.cwd || process.cwd()))) fail('INVALID_WORKSPACE_HOME', 'The global workspace home must not contain the target repo.');
   await assertInstallable(path.resolve(options.repo || options.cwd || process.cwd()));
+  if (options.wikiDir !== undefined) await safePath(path.resolve(options.repo || options.cwd || process.cwd()), options.wikiDir);
   return { global: await initGlobal(options), repo: await initRepo(options) };
 }

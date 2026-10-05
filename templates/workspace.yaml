@@ -7,8 +7,8 @@ policy:
   global_core: ~/.agent-workspace/core/CORE.md
   repo_core: .agent/CORE.md
 wiki:
-  index: .agent/wiki/INDEX.md
-  map: .agent/wiki/MAP.yaml
+  index: wiki/INDEX.md
+  map: wiki/MAP.yaml
   max_pages: 3
 skills:
   global: ~/.agent-workspace/skills

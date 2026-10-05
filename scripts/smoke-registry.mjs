@@ -51,7 +51,7 @@ try {
   const prefix = ['--yes', '--package', specifier, 'agent-workspace'];
   const initialized = JSON.parse(await run('npx', ['--yes', specifier, 'init', '--json'], repo, cache, home));
   assert.equal(initialized.repo.repo, repo);
-  assert.equal(initialized.repo.native_skills.created, 21);
+  assert.equal(initialized.repo.skills.created, 7);
   const router = await fs.readFile(path.join(repo, 'AGENTS.md'), 'utf8');
   assert.ok(router.includes('npx --yes --package "' + specifier + '" agent-workspace'));
   assert.ok(!router.includes(root.replaceAll('\\', '/')));

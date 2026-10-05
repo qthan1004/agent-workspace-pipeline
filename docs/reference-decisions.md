@@ -19,14 +19,14 @@ Runtime command syntax was checked against primary documentation:
 - [YAML parser](https://eemeli.org/yaml/): YAML/frontmatter parsing.
 - [npm package fields](https://docs.npmjs.com/cli/v11/configuring-npm/package-json/): executable and publish files.
 
-Multi-platform initialization installs all four integrations by default or a selected subset. Seven namespaced native entrypoints forward to the canonical workflows through .agent/ADAPTER.md and skills show, honoring project-local overrides. Existing instructions receive one managed block; existing skills remain untouched.
+Multi-platform initialization installs all four instruction routers by default or a selected subset. Per the user's latest instruction, every platform resolves the same canonical project workflows in .agent/skills. No native skills copies, symlinks or per-platform slash-command registrations are installed. AGENTS.md, CLAUDE.md, GEMINI.md and Antigravity's .agent/rules/agent-workspace.md carry routing instructions and a workflow index.
 
-Native discovery paths were checked against primary documentation:
+The platform-specific discovery conventions were checked against primary documentation:
+- [Codex skills](https://learn.chatgpt.com/docs/build-skills).
+- [Claude skills](https://code.claude.com/docs/en/skills).
+- [Gemini skills](https://geminicli.com/docs/cli/using-agent-skills/).
+- [Antigravity skills](https://antigravity.google/docs/skills) and [rules](https://www.antigravity.google/docs/rules/), including the supported .agent/rules location and trigger frontmatter.
 
-- [Codex skills](https://learn.chatgpt.com/docs/build-skills): project .agents/skills plus AGENTS.md instructions.
-- [Claude skills](https://code.claude.com/docs/en/skills): project .claude/skills plus CLAUDE.md instructions.
-- [Gemini skills](https://geminicli.com/docs/cli/using-agent-skills/): project .gemini/skills, with .agents/skills also recognized.
-- [Antigravity skills](https://antigravity.google/docs/skills): project .agents/skills, with legacy .agent/skills supported.
-- [Antigravity rules](https://www.antigravity.google/docs/rules/): .agents/rules/*.md with trigger: always_on for the generated router; legacy .agent/rules remains supported and is preserved.
+The shared folder deliberately uses instruction-driven discovery rather than claiming every harness automatically registers native commands from .agent/skills. Local workflows override the same global names through the resolver. Agents operate contract/context/execution/evidence commands themselves; users do not need to fill templates or supervise routine mechanics.
 
-Codex and Antigravity share .agents/skills without duplicate copies there. Gemini may also discover the shared aliases; no workspace config or trust setting is overwritten to alter its discovery. Generic adapters produce a Markdown brief. Third-party skill libraries can be installed by their authorized maintainer with their original resources and licenses, then selected lazily.
+Wiki organization was researched using [GitHub wiki pages](https://docs.github.com/en/communities/documenting-your-project-with-wikis/adding-or-editing-wiki-pages), [GitHub navigation](https://docs.github.com/en/communities/documenting-your-project-with-wikis/creating-a-footer-or-sidebar-for-your-wiki) and [GitLab wiki](https://docs.gitlab.com/user/project/wiki/). These host wiki content in Git repositories and support Markdown/navigation; they do not prescribe a local wiki/ or .wiki/ folder. Our inference for this package is a versioned wiki/ directory next to source, with INDEX.md for orientation and MAP.yaml for agent context routing. --wiki-dir .wiki selects a hidden directory for new projects. Existing configured wiki paths, including .agent/wiki, stay intact. Initialization does not publish or synchronize hosted wikis.

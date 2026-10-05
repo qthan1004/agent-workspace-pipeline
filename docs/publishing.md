@@ -29,7 +29,7 @@ npm run smoke:registry
 
 release:check thực hiện npm publish --dry-run. Lifecycle prepack kiểm tra syntax/skill manifests và integration tests; dry run liệt kê chính xác các file sẽ publish. Chỉ bin/src/templates/schemas/docs/examples/README/CHANGELOG/LICENSE và metadata npm được đóng gói; resource, tests, scripts phát triển, caches và cấu hình tài khoản được loại khỏi runtime package.
 
-smoke:packed chạy CLI từ package đã cài, kiểm tra init mặc định cho bốn nền tảng và native skills, tạo task demo, chạy test thực tế, kiểm tra receipt/review IO và completion gate. Review trong smoke test là fixture được đánh dấu rõ, không phải bằng chứng một model reviewer thật đã review.
+smoke:packed chạy CLI từ package đã cài, kiểm tra init mặc định cho bốn nền tảng, skills dùng chung và wiki tách riêng, tạo task demo, chạy test thực tế, kiểm tra receipt/review IO và completion gate. Review trong smoke test là fixture được đánh dấu rõ, không phải bằng chứng một model reviewer thật đã review.
 
 smoke:registry phục vụ **registry thử trên loopback** và tarball hiện tại, rồi chạy đúng lệnh npm/npx theo package name. Nó kiểm tra init mặc định/chọn nhiều nền tảng, doctor, router theo version và khả năng tải lại sau khi chuyển workspace sang thư mục/cache khác. Dependencies vẫn được lấy từ npm public. Kiểm thử này không publish package lên npmjs.com.
 

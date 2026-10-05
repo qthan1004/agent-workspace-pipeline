@@ -105,9 +105,9 @@ test('resolver keeps mandatory rules, path priority, wiki limit and draft exclus
   const contexts = {};
   for (const [id, routing] of [['exact', { paths: ['src/value.mjs'] }], ['symbol', { symbols: ['value'] }], ['tag', { tags: ['value'] }], ['related', {}], ['draft', { paths: ['src/value.mjs'] }]]) {
     contexts[id] = { file: 'contexts/' + id + '.md', description: id === 'related' ? '' : 'value', ...routing, related: id === 'exact' ? ['related'] : [] };
-    await f.write('.agent/wiki/contexts/' + id + '.md', markdown({ id, version: '1.0.0', status: id === 'draft' ? 'draft' : 'active', owner: 'owner', scope: [], released_at: '2026-10-05', verified_against: 'abc1234' }, '# Context ' + id));
+    await f.write('wiki/contexts/' + id + '.md', markdown({ id, version: '1.0.0', status: id === 'draft' ? 'draft' : 'active', owner: 'owner', scope: [], released_at: '2026-10-05', verified_against: 'abc1234' }, '# Context ' + id));
   }
-  await f.write('.agent/wiki/MAP.yaml', stringify({ version: 1, contexts }));
+  await f.write('wiki/MAP.yaml', stringify({ version: 1, contexts }));
   const context = await api.resolveContext(f.workspace, api.queryInput('value', { paths: ['src/value.mjs'], symbols: ['value'], tags: ['value'] }));
   assert.deepEqual(context.wiki.map((item) => item.context), ['exact', 'symbol', 'tag']);
   assert.ok(context.rules.some((item) => item.id === 'plain'));
@@ -210,7 +210,7 @@ test('wiki CRUD synchronizes scope routing and release metadata', async (t) => {
 test('managed paths and wiki map cannot traverse outside their root', async (t) => {
   const f = await fixture(t);
   await rejects(safePath(f.options.repo, '../external.txt'), 'UNSAFE_PATH');
-  await f.write('.agent/wiki/MAP.yaml', stringify({ version: 1, contexts: { bad: { file: '../../outside.md', description: 'bad' } } }));
+  await f.write('wiki/MAP.yaml', stringify({ version: 1, contexts: { bad: { file: '../../outside.md', description: 'bad' } } }));
   await rejects(api.wikiInventory(f.workspace), 'UNSAFE_PATH');
 });
 test('git fingerprint covers staged/untracked source and ignores task artifacts', async (t) => {
@@ -372,52 +372,58 @@ test('source fingerprint covers a workspace ignored by a parent Git repository',
   assert.notEqual((await sourceSnapshot(f.workspace)).digest, before.digest);
 });
 
-test('default init installs four native integrations and seven skills per discovery directory', async (t) => {
+test('default init routes four platforms to one skills folder and a separate wiki', async (t) => {
   const f = await fixture(t);
-  for (const file of ['AGENTS.md', 'CLAUDE.md', 'GEMINI.md', '.agent/ADAPTER.md', '.agents/rules/agent-workspace.md']) assert.ok(await exists(path.join(f.options.repo, file)), file);
-  const skills = ['analyze', 'interview', 'pipeline', 'plan', 'review', 'tdd', 'wiki-maintenance'];
-  for (const directory of ['.agents/skills', '.claude/skills', '.gemini/skills']) {
-    assert.deepEqual((await fs.readdir(path.join(f.options.repo, directory))).sort(), skills.map((name) => 'agent-workspace-' + name));
-    for (const name of skills) {
-      const skill = frontmatter(await fs.readFile(path.join(f.options.repo, directory, 'agent-workspace-' + name, 'SKILL.md'), 'utf8'));
-      assert.equal(skill.metadata.name, 'agent-workspace-' + name);
-      assert.ok(skill.metadata.description.trim());
-      assert.ok(skill.body.includes('skills show ' + name));
-      assert.ok(skill.body.includes('.agent/ADAPTER.md'));
-    }
+  for (const file of ['AGENTS.md', 'CLAUDE.md', 'GEMINI.md', '.agent/ADAPTER.md', '.agent/rules/agent-workspace.md']) {
+    const content = await fs.readFile(path.join(f.options.repo, file), 'utf8');
+    assert.ok(content.includes('.agent/skills'), file);
+    assert.ok(content.includes('plan:'), file);
+    assert.ok(!content.includes('{{SKILLS}}'), file);
   }
-  const rule = frontmatter(await fs.readFile(path.join(f.options.repo, '.agents/rules/agent-workspace.md'), 'utf8'));
+  for (const folder of ['.agents', '.claude', '.gemini', '.codex', '.agent/wiki']) assert.ok(!await exists(path.join(f.options.repo, folder)), folder);
+  const skills = ['analyze', 'interview', 'pipeline', 'plan', 'review', 'tdd', 'wiki-maintenance'];
+  assert.deepEqual((await fs.readdir(path.join(f.options.repo, '.agent/skills'))).sort(), skills);
+  for (const name of skills) {
+    const skill = frontmatter(await fs.readFile(path.join(f.options.repo, '.agent/skills', name, 'SKILL.md'), 'utf8'));
+    assert.equal(skill.metadata.name, name);
+    assert.ok(skill.metadata.description.trim());
+    assert.ok(skill.body.trim());
+  }
+  assert.ok(await exists(path.join(f.options.repo, 'wiki/INDEX.md')));
+  assert.ok(await exists(path.join(f.options.repo, 'wiki/MAP.yaml')));
+  const rule = frontmatter(await fs.readFile(path.join(f.options.repo, '.agent/rules/agent-workspace.md'), 'utf8'));
   assert.equal(rule.metadata.trigger, 'always_on');
   const repeated = await api.bootstrap(f.options);
   assert.deepEqual(repeated.repo.platforms, ['codex', 'claude', 'gemini', 'antigravity']);
-  assert.equal(repeated.repo.native_skills.created, 0);
-  assert.equal(repeated.repo.native_skills.preserved, 21);
+  assert.equal(repeated.repo.skills.directory, '.agent/skills');
+  assert.equal(repeated.repo.skills.created, 0);
+  assert.equal(repeated.repo.skills.preserved, 7);
+  assert.equal((await api.skillInventory(f.workspace)).length, 7);
 });
 
-test('selected platforms install additively and preserve native skills and instructions', async (t) => {
+test('selected platforms install additively and reuse customized shared workflows', async (t) => {
   const f = await fixture(t);
   const options = { ...f.options, repo: path.join(f.directory, 'selected-project'), with: 'codex,claude,codex' };
   const first = await api.bootstrap(options);
   assert.deepEqual(first.repo.platforms, ['codex', 'claude']);
-  assert.equal(first.repo.native_skills.created, 14);
+  assert.equal(first.repo.skills.created, 7);
   assert.ok(!await exists(path.join(options.repo, 'GEMINI.md')));
-  assert.ok(!await exists(path.join(options.repo, '.gemini')));
-  assert.ok(!await exists(path.join(options.repo, '.agents/rules')));
+  assert.ok(!await exists(path.join(options.repo, '.agent/rules/agent-workspace.md')));
   const claude = path.join(options.repo, 'CLAUDE.md');
   await fs.writeFile(claude, 'Custom Claude instruction.\n');
-  const native = path.join(options.repo, '.claude/skills/agent-workspace-plan/SKILL.md');
-  await fs.writeFile(native, 'Custom native skill: retain this content.\n');
+  const local = path.join(options.repo, '.agent/skills/plan/SKILL.md');
+  const customized = markdown({ name: 'plan', description: 'Custom project plan.' }, '# Keep the project planning convention.');
+  await fs.writeFile(local, customized);
   const extra = await api.bootstrap({ ...options, with: ['claude', 'gemini'] });
   assert.deepEqual(extra.repo.platforms, ['claude', 'gemini']);
-  assert.equal(extra.repo.native_skills.created, 7);
-  assert.equal(extra.repo.native_skills.preserved, 7);
+  assert.equal(extra.repo.skills.created, 0);
+  assert.equal(extra.repo.skills.preserved, 7);
   assert.ok((await fs.readFile(claude, 'utf8')).startsWith('Custom Claude instruction.\n'));
-  assert.equal(await fs.readFile(native, 'utf8'), 'Custom native skill: retain this content.\n');
+  assert.equal(await fs.readFile(local, 'utf8'), customized);
   assert.ok(await exists(path.join(options.repo, 'AGENTS.md')));
   assert.ok(await exists(path.join(options.repo, 'GEMINI.md')));
-  assert.equal((await api.skillInventory(await api.loadWorkspace(options))).length, 7);
-  const rule = path.join(options.repo, '.agents/rules/agent-workspace.md');
-  await fs.mkdir(path.dirname(rule), { recursive: true });
+  assert.equal((await api.skillInventory(await api.loadWorkspace(options))).find((skill) => skill.id === 'plan').text, customized);
+  const rule = path.join(options.repo, '.agent/rules/agent-workspace.md');
   await fs.writeFile(rule, 'Custom Antigravity instruction.\n');
   await api.installAdapters(options.repo, 'antigravity');
   const merged = frontmatter(await fs.readFile(rule, 'utf8'));
@@ -439,13 +445,13 @@ test('invalid platform selections and active executions fail before initializati
   assert.ok(!await exists(home));
 });
 
-test('native rules and skill mutations invalidate prepared governance', async (t) => {
+test('shared skills and adapter rule mutations invalidate prepared governance', async (t) => {
   const f = await fixture(t), id = await approved(f);
   await api.prepare(id, f.options);
   const before = await governanceSnapshot(f.workspace);
-  const relative = '.claude/skills/agent-workspace-tdd/SKILL.md';
+  const relative = '.agent/skills/tdd/SKILL.md';
   assert.ok(before.files[path.join(f.options.repo, relative)]);
-  assert.ok(before.files[path.join(f.options.repo, '.agents/rules/agent-workspace.md')]);
+  assert.ok(before.files[path.join(f.options.repo, '.agent/rules/agent-workspace.md')]);
   await fs.appendFile(path.join(f.options.repo, relative), '\nUnexpected workflow mutation.\n');
   await rejects(api.prepare(id, f.options), 'GOVERNANCE_CHANGED');
 });
@@ -475,4 +481,59 @@ test('CLI accepts CSV and repeated init platforms, refreshes only managed blocks
   assert.equal(single.code, 0, single.stderr);
   const multiple = await capture(process.execPath, [cli, 'run', 'NEW', '--with', 'codex,claude', '--dry-run', ...args], root);
   assert.equal(JSON.parse(multiple.stderr).error, 'INVALID_OPTION');
+});
+
+test('custom hidden wiki location supports CRUD and preserves preexisting documentation', async (t) => {
+  const f = await fixture(t);
+  const options = { ...f.options, repo: path.join(f.directory, 'hidden-wiki'), wikiDir: '.wiki', with: 'claude' };
+  await fs.mkdir(path.join(options.repo, '.wiki'), { recursive: true });
+  await fs.writeFile(path.join(options.repo, '.wiki/INDEX.md'), '# Existing team wiki\n');
+  await api.bootstrap(options);
+  const workspace = await api.loadWorkspace(options);
+  assert.equal(workspace.config.wiki.map, '.wiki/MAP.yaml');
+  assert.equal(await fs.readFile(workspace.wikiIndex, 'utf8'), '# Existing team wiki\n');
+  assert.ok(!await exists(path.join(options.repo, 'wiki')));
+  const authority = { ...options, maintenance: true, by: 'authorized-agent' };
+  await api.newWiki('auth', authority);
+  assert.ok(await exists(path.join(options.repo, '.wiki/contexts/auth.md')));
+  const page = frontmatter(await api.showWiki('auth', options));
+  page.metadata.version = '1.0.0';
+  page.metadata.status = 'active';
+  page.metadata.released_at = '2026-10-05';
+  page.metadata.verified_against = 'source-revision-inspected';
+  page.metadata.scope = ['src/auth/**'];
+  page.body = '# Authentication\n\nVerified flow and source entrypoints.';
+  const candidate = path.join(f.directory, 'auth-page.md');
+  await fs.writeFile(candidate, markdown(page.metadata, page.body));
+  await api.updateWiki('auth', { ...authority, from: candidate, tags: ['auth'] });
+  assert.equal((await api.resolveQuery('wiki', 'auth', options))[0].context, 'auth');
+  assert.equal((await api.doctor(options)).ok, true);
+  await api.deleteWiki('auth', authority);
+  assert.ok(!await exists(path.join(options.repo, '.wiki/contexts/auth.md')));
+});
+
+test('reinitializing a legacy wiki preserves its configured path and custom pages', async (t) => {
+  const f = await fixture(t);
+  const options = { ...f.options, repo: path.join(f.directory, 'legacy-wiki'), wikiDir: '.agent/wiki' };
+  await api.bootstrap(options);
+  const index = path.join(options.repo, '.agent/wiki/INDEX.md');
+  await fs.writeFile(index, '# Maintained legacy index\n');
+  const repeated = await api.bootstrap({ ...options, wikiDir: 'wiki', refresh: true });
+  assert.equal(repeated.repo.wiki.index, '.agent/wiki/INDEX.md');
+  assert.equal(await fs.readFile(index, 'utf8'), '# Maintained legacy index\n');
+  assert.ok(!await exists(path.join(options.repo, 'wiki')));
+  assert.equal((await api.doctor(options)).ok, true);
+});
+
+test('wiki traversal is rejected before global setup and CLI honors --wiki-dir', async (t) => {
+  const f = await fixture(t);
+  const options = { repo: path.join(f.directory, 'unsafe-wiki'), home: path.join(f.directory, 'unused-home'), wikiDir: '../outside' };
+  await rejects(api.bootstrap(options), 'UNSAFE_PATH');
+  assert.ok(!await exists(options.home));
+  assert.ok(!await exists(options.repo));
+  const cli = path.join(root, 'bin/agent-workspace.js');
+  const repo = path.join(f.directory, 'cli-wiki');
+  const init = await capture(process.execPath, [cli, 'init', '--repo', repo, '--home', f.options.home, '--with', 'claude,gemini', '--wiki-dir', '.wiki', '--json'], root);
+  assert.equal(init.code, 0, init.stderr);
+  assert.equal(JSON.parse(init.stdout).repo.wiki.map, '.wiki/MAP.yaml');
 });

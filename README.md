@@ -2,7 +2,7 @@
 
 Cài một lần cho project để Codex, Claude Code, Gemini hoặc Antigravity cùng làm việc theo một quy trình: **hiểu yêu cầu → lập task/plan → sửa code → kiểm tra → review → hoàn tất**.
 
-Bạn giao việc bằng lời trong IDE. Agent dùng bộ skills và CLI để lưu task, chọn rules/wiki liên quan và kiểm tra bằng chứng. Bạn có thể dùng 2–3 nền tảng trên cùng project; chúng đọc chung task và kiến thức trong .agent.
+**Thiết kế để agent vận hành.** Bạn cài package rồi giao việc bằng lời trong IDE; agent tự phân tích, viết contract/plan, chọn context, chạy CLI, implement, thu evidence và kiểm tra completion. Các quyết định thiếu ảnh hưởng correctness hoặc quyền chưa được cấp mới quay lại người dùng. Bạn có thể dùng 2–3 nền tảng trên cùng project; chúng đọc chung task và kiến thức trong .agent.
 
 **Bản hiện tại: 0.2.0.** Package được phân phối qua GitHub Release và cài bằng npm/npx. **Chưa publish lên npm registry**, nên hãy dùng URL dưới đây để cài ngay.
 
@@ -73,7 +73,7 @@ npx --yes https://github.com/qthan1004/agent-workspace-pipeline/releases/downloa
 
 doctor trả JSON có **"ok": true**; skills list có 7 tên: analyze, interview, pipeline, plan, review, tdd, wiki-maintenance. Finding WIKI_NOT_RELEASED là thông tin bình thường ở project mới: các trang wiki mẫu đang là draft, chưa được xác minh để dùng làm kiến thức chính thức.
 
-Sau đó mở lại/reload phiên agent trong project để nó phát hiện instructions và skills. Với Gemini, workspace phải được trust theo cơ chế của Gemini; kiểm tra danh sách skills trong harness nếu chưa thấy. doctor kiểm tra cấu hình/file, còn việc harness đã nạp skills và truy cập tools phải kiểm tra trong chính harness.
+Sau đó mở lại/reload phiên agent trong project để nó nạp instructions. Nhắn agent: “Đọc instructions, liệt kê workflows bằng skills list và cho biết thư mục đang dùng.” Agent sẽ đọc bộ chung tại .agent/skills. doctor kiểm tra cấu hình/file; live tools và model phải kiểm tra trong harness.
 
 **Đến đây có thể giao task bằng chat**, theo mục 4. Không cần tự chạy toàn bộ lệnh quản lý task trước khi bắt đầu.
 
@@ -83,61 +83,84 @@ Ví dụ cài cả bốn nền tảng:
 
 ~~~text
 your-project/
-├── AGENTS.md                         instructions cho Codex
-├── CLAUDE.md                         instructions cho Claude Code
-├── GEMINI.md                         instructions cho Gemini
-├── .agent/                           pipeline và dữ liệu dùng chung
-│   ├── workspace.yaml                cấu hình project/tools/review
+├── AGENTS.md                         Codex đọc và trỏ vào pipeline chung
+├── CLAUDE.md                         Claude đọc và trỏ vào pipeline chung
+├── GEMINI.md                         Gemini đọc và trỏ vào pipeline chung
+├── .agent/
+│   ├── workspace.yaml                cấu hình project/tools/wiki/review
 │   ├── CORE.md                       nguyên tắc riêng của project
 │   ├── ADAPTER.md                    cách gọi CLI đúng version
-│   ├── rules/                        rules riêng của project
-│   ├── skills/                       workflow riêng/override của project
-│   ├── tasks/                        task và plan được lưu tại đây
+│   ├── skills/                       một bộ 7 workflows cho mọi nền tảng
+│   │   ├── pipeline/SKILL.md
+│   │   ├── analyze/SKILL.md
+│   │   ├── interview/SKILL.md
+│   │   ├── plan/SKILL.md
+│   │   ├── tdd/SKILL.md
+│   │   ├── review/SKILL.md
+│   │   └── wiki-maintenance/SKILL.md
+│   ├── rules/                        rules project; router Antigravity ở đây
+│   ├── tasks/                        task/plan do agent quản lý
 │   ├── raw/                          tài liệu onboarding gốc
-│   ├── wiki/                         INDEX.md, MAP.yaml, các trang mẫu
-│   └── change-requests/              đề xuất cập nhật kiến thức
-├── .agents/
-│   ├── skills/agent-workspace-*/      7 skills cho Codex/Antigravity
-│   └── rules/agent-workspace.md       rule kích hoạt cho Antigravity
-├── .claude/skills/agent-workspace-*/   7 skills cho Claude Code
-└── .gemini/skills/agent-workspace-*/   7 skills cho Gemini
+│   └── change-requests/              đề xuất sửa rules/kiến thức
+└── wiki/                             kiến thức project, tách khỏi pipeline
+    ├── INDEX.md                      trang vào và điều hướng cho agent/người
+    ├── MAP.yaml                      routing theo path/symbol/tag
+    ├── architecture.md               mẫu draft
+    ├── conventions.md                mẫu draft
+    └── glossary.md                   mẫu draft
 ~~~
 
-.agent là nơi **lưu công việc chung**. .agents/.claude/.gemini là nơi **nền tảng AI phát hiện skills**. Codex dùng AGENTS.md và .agents/skills; không cần tạo một folder .CODEX để chứa skills. Codex và Antigravity chia sẻ cùng thư mục .agents/skills. Gemini cũng có thể phát hiện thư mục dùng chung này; không cần gọi skill hai lần nếu harness hiện các alias.
+**Mọi nền tảng cùng dùng .agent/skills.** Các file instructions chỉ hướng agent vào bộ workflow này; không tạo các bản skills ở .agents/.claude/.gemini/.codex. Không cần đồng bộ nhiều bản hoặc symlink. Antigravity đọc thêm .agent/rules/agent-workspace.md với trigger: always_on.
 
-Nếu chỉ chọn codex,claude, bạn có AGENTS.md, CLAUDE.md, .agent, .agents/skills và .claude/skills; không tạo Gemini instructions/skills hay Antigravity rule. Chạy lại để thêm gemini sẽ bổ sung phần Gemini.
+Đây là cơ chế **agent đọc instructions rồi chọn workflow**, không đăng ký slash commands riêng cho từng nền tảng. Sau khi init, có thể nhắn: “Đọc instructions của project, dùng CLI liệt kê skills rồi xử lý task này theo pipeline.”
 
-Bộ workflow gốc được init tại **~/.agent-workspace/** của user hiện tại: core, skills, handbook và profiles. Các SKILL.md trong project là entrypoint gọi workflow này qua CLI, có hỗ trợ override trong .agent/skills. Do đó sửa skill riêng của project không cần sửa ba bản cho ba nền tảng.
+Nếu chọn codex,claude, chỉ tạo AGENTS.md và CLAUDE.md cho hai nền tảng đó. .agent/skills và wiki vẫn dùng chung. Chạy lại để thêm gemini chỉ bổ sung GEMINI.md và phần còn thiếu, giữ các workflows bạn đã tùy chỉnh.
+
+Bộ mặc định dùng chung của user tại **~/.agent-workspace/** gồm CORE, handbook, profiles và skills fallback. Project có bộ workflows tại .agent/skills để agent dùng và maintainer chỉnh một lần; local cùng tên được ưu tiên hơn global. Config dùng đường dẫn ~ nên không gắn với máy tác giả.
+
+### Vì sao wiki nằm ở wiki/?
+
+[GitHub Wiki](https://docs.github.com/en/communities/documenting-your-project-with-wikis/adding-or-editing-wiki-pages) và [GitLab Wiki](https://docs.gitlab.com/user/project/wiki/) quản lý các trang tài liệu bằng Git, hỗ trợ Markdown và điều hướng. Wiki của hai dịch vụ này có repository riêng; không có quy định chung bắt buộc folder local tên wiki hay .wiki.
+
+Từ cách quản lý đó, package chọn **wiki/** ở repo root: các trang Markdown và links dễ đọc, đi cùng source revision và review trong Git. INDEX.md làm entrypoint; MAP.yaml bổ sung routing để agent chỉ nạp tối đa 3 trang active phù hợp task. Đây là lựa chọn của package; init không tự publish lên tab Wiki của GitHub/GitLab.
+
+Muốn dùng thư mục ẩn thì chọn lúc init project mới:
+
+~~~sh
+agent-workspace init --with codex,claude --distribution github --wiki-dir .wiki
+~~~
+
+Với npx, thêm --wiki-dir .wiki vào lệnh ở mục 1. Agent đọc wiki.index/wiki.map trong .agent/workspace.yaml, nên không hardcode wiki/. **Repo cũ dùng .agent/wiki vẫn được giữ nguyên**, không tự di chuyển hoặc ghi đè kiến thức. Đổi vị trí wiki hiện có là một công việc maintenance riêng.
 
 | Khi làm việc, phần nào xuất hiện thêm? | Dùng để làm gì? |
 | --- | --- |
 | .agent/tasks/LOGIN-42.md | Yêu cầu, plan, tiêu chí nghiệm thu và trạng thái một task |
-| .agent/prepared/LOGIN-42/ | Brief cùng baseline để biết agent được giao gì và source ban đầu ra sao |
-| .agent/evidence/LOGIN-42.json | Receipt liên kết từng tiêu chí với bằng chứng kiểm tra |
-| .agent/evidence/LOGIN-42/ | Logs, test output, review và các artifacts thật |
-| .agent/archive/ | Bản lưu của task/rule/wiki đã xóa khỏi danh sách hoạt động |
+| .agent/prepared/LOGIN-42/ | Brief và baseline kiểm tra |
+| .agent/evidence/LOGIN-42.json | Receipt liên kết tiêu chí với bằng chứng |
+| .agent/evidence/LOGIN-42/ | Logs, test output, review và artifacts thật |
+| .agent/archive/ | Bản lưu task/rule/wiki đã xóa khỏi danh sách hoạt động |
 
-prepared/evidence/learning mặc định được ignore trong Git. Các folder runtime được tạo khi lệnh tương ứng sử dụng chúng. Workspace có nhiều repo thì chạy init trong từng repo; các repo có thể dùng chung global home.
+prepared/evidence/learning mặc định được ignore trong Git; được tạo khi workflow sử dụng chúng. Với workspace nhiều repo, init từng repo cần pipeline, có thể dùng chung global home.
 
-**File đã có sẵn:** giữ nguyên CORE/config/skills bạn đã chỉnh. AGENTS.md, CLAUDE.md, GEMINI.md nhận thêm một block Agent Workspace nếu chưa có; không thay toàn bộ file. Rule Antigravity mới có trigger: always_on; file có frontmatter riêng được giữ activation của bạn. --refresh chỉ cập nhật block do package quản lý. Chọn ít nền tảng hơn ở lần sau không gỡ những nền tảng đã cài.
+**File đã có sẵn:** giữ nguyên CORE/config/skills bạn đã chỉnh. AGENTS.md, CLAUDE.md, GEMINI.md nhận một block Agent Workspace nếu chưa có; không thay toàn bộ file. --refresh cập nhật block do package quản lý, giữ instructions của bạn. Chọn ít nền tảng hơn ở lần sau không gỡ những nền tảng đã cài.
 
 ## 3. Bảy skills làm gì?
 
 **Rule** nói agent phải tuân thủ điều gì, ví dụ “không thay public API nếu chưa duyệt”. **Skill** hướng dẫn agent thực hiện một loại công việc, ví dụ phân tích impact, lập plan hoặc review.
 
-| Tên skill trong harness | Khi dùng và kết quả | Ví dụ bạn nhắn agent |
+| Tên skill dùng chung | Khi dùng và kết quả | Ví dụ bạn nhắn agent |
 | --- | --- | --- |
-| agent-workspace-pipeline | Điều phối cả task: yêu cầu → contract → thực hiện → evidence → review → finish | “Dùng pipeline sửa lỗi đăng nhập này đến khi kiểm tra xong.” |
-| agent-workspace-analyze | Đọc source, tìm nguyên nhân/impact và rút ra tiêu chí nghiệm thu | “Phân tích lỗi này, xác định callers bị ảnh hưởng và cách chứng minh đã sửa.” |
-| agent-workspace-interview | Làm rõ các quyết định còn thiếu về hành vi/phạm vi trước khi làm | “Yêu cầu phân quyền còn mơ hồ, giúp tôi chốt hành vi cần có.” |
-| agent-workspace-plan | Lập các bước thực hiện trong một Task Contract; yêu cầu chỉ plan thì dừng ở plan | “Lập plan thêm reset password, chưa implement.” |
-| agent-workspace-tdd | Dùng test có ý nghĩa để tái hiện lỗi/kiểm chứng hành vi, sửa và kiểm tra regression | “Tái hiện bug bằng test rồi sửa, kiểm tra các case liên quan.” |
-| agent-workspace-review | Review độc lập dựa trên contract, source hiện tại và evidence; trả findings hoặc review pass có phạm vi rõ | “Review LOGIN-42 trong phiên mới, kiểm tra cả evidence và callers.” |
-| agent-workspace-wiki-maintenance | Onboard/cập nhật kiến thức từ source đã kiểm tra, đề xuất/release wiki trong maintenance được phép | “Tôi cho phép onboarding wiki: đọc source và tài liệu để mô tả auth flow.” |
+| pipeline | Điều phối cả task: yêu cầu → contract → thực hiện → evidence → review → finish | “Dùng pipeline sửa lỗi đăng nhập này đến khi kiểm tra xong.” |
+| analyze | Đọc source, tìm nguyên nhân/impact và rút ra tiêu chí nghiệm thu | “Phân tích lỗi này, xác định callers bị ảnh hưởng và cách chứng minh đã sửa.” |
+| interview | Làm rõ các quyết định còn thiếu về hành vi/phạm vi trước khi làm | “Yêu cầu phân quyền còn mơ hồ, giúp tôi chốt hành vi cần có.” |
+| plan | Lập các bước thực hiện trong một Task Contract; yêu cầu chỉ plan thì dừng ở plan | “Lập plan thêm reset password, chưa implement.” |
+| tdd | Dùng test có ý nghĩa để tái hiện lỗi/kiểm chứng hành vi, sửa và kiểm tra regression | “Tái hiện bug bằng test rồi sửa, kiểm tra các case liên quan.” |
+| review | Review độc lập dựa trên contract, source hiện tại và evidence; trả findings hoặc review pass có phạm vi rõ | “Review LOGIN-42 trong phiên mới, kiểm tra cả evidence và callers.” |
+| wiki-maintenance | Onboard/cập nhật kiến thức từ source đã kiểm tra, đề xuất/release wiki trong maintenance được phép | “Tôi cho phép onboarding wiki: đọc source và tài liệu để mô tả auth flow.” |
 
-Bạn không cần thuộc các tên để dùng hằng ngày: instructions hướng agent vào pipeline. Có thể nhắc tên skill trong prompt để yêu cầu rõ hơn; cách gọi slash/$ cụ thể tùy nền tảng.
+Bạn không cần thuộc các tên để dùng hằng ngày: instructions hướng agent vào pipeline. Có thể nhắc “skill plan của Agent Workspace” để agent đọc .agent/skills/plan/SKILL.md. Agent dùng tên trong bảng khi gọi CLI, không cần platform-specific slash commands.
 
-CLI dùng **tên ngắn**, không có tiền tố agent-workspace-:
+CLI và folder skills dùng cùng tên ngắn trong bảng:
 
 ~~~sh
 agent-workspace skills list
@@ -158,7 +181,7 @@ Mở đúng project đã init. Chọn model mạnh và effort cao trong nền t�
 
 Gửi:
 
-> Dùng agent-workspace-plan. Đọc source để lập plan thêm chức năng reset password, lưu Task Contract RESET-1 ở dạng draft. Chưa implement. Nếu cần chốt hành vi ảnh hưởng người dùng thì hỏi tôi.
+> Dùng skill plan của Agent Workspace. Đọc source để lập plan thêm chức năng reset password, lưu Task Contract RESET-1 ở dạng draft. Chưa implement. Nếu cần chốt hành vi ảnh hưởng người dùng thì hỏi tôi.
 
 Kết quả mong đợi: .agent/tasks/RESET-1.md có yêu cầu, các bước, scope và acceptance criteria. Agent không sửa logic production theo một yêu cầu chỉ lập plan.
 
@@ -166,7 +189,7 @@ Kết quả mong đợi: .agent/tasks/RESET-1.md có yêu cầu, các bước, s
 
 Gửi:
 
-> Dùng agent-workspace-pipeline cho task LOGIN-42: sửa lỗi đăng nhập khi email có khoảng trắng ở đầu/cuối. Giữ nguyên các hành vi khác. Hãy kiểm tra source và impact, lưu Task Contract, dùng test để chứng minh kết quả, rồi cung cấp evidence và independent review. Quyết định về business chưa rõ thì hỏi tôi.
+> Dùng pipeline của Agent Workspace cho task LOGIN-42: sửa lỗi đăng nhập khi email có khoảng trắng ở đầu/cuối. Giữ nguyên các hành vi khác. Hãy kiểm tra source và impact, lưu Task Contract, dùng test để chứng minh kết quả, rồi cung cấp evidence và independent review. Quyết định về business chưa rõ thì hỏi tôi.
 
 Một task đi qua các bước sau:
 
@@ -187,7 +210,7 @@ Agent ghi approval khi cuộc hội thoại đã thực sự cho phép semantics
 
 Ví dụ Codex implement LOGIN-42, sau đó mở **phiên Claude mới** trong cùng project và gửi:
 
-> Dùng agent-workspace-review để review LOGIN-42. Đọc contract, current source/diff và receipt. Chạy review prepare để lấy hashes, kiểm tra tiêu chí và evidence, lưu findings. Chỉ record passed nếu các kiểm tra thực sự đạt.
+> Dùng skill review của Agent Workspace để review LOGIN-42. Đọc contract, current source/diff và receipt. Chạy review prepare để lấy hashes, kiểm tra tiêu chí và evidence, lưu findings. Chỉ record passed nếu các kiểm tra thực sự đạt.
 
 Hai nền tảng đọc chung .agent; không cần copy task. Nếu source thay đổi sau review, checks/review phải được cập nhật. Với cùng một repo, làm implementation lần lượt theo execution lock; package không tự giải quyết các phiên IDE cùng sửa code bên ngoài CLI.
 
@@ -219,7 +242,7 @@ agent-workspace init --with codex,claude,gemini --distribution github
 agent-workspace adapter install --with gemini,antigravity
 ~~~
 
-Cả hai cách bổ sung instructions/native skills còn thiếu, giữ phần đã có. Có thể lặp --with codex --with claude thay cho CSV. init/setup giữ nguyên workflows đã tùy chỉnh; upgrade nội dung canonical skill do maintainer review riêng.
+Cả hai cách bổ sung instructions và bộ skills chung còn thiếu, giữ phần đã có. Có thể lặp --with codex --with claude thay cho CSV. init/setup giữ nguyên workflows đã tùy chỉnh; upgrade nội dung canonical skill do maintainer review riêng.
 
 Khi đã cài CLI bản mới, cập nhật các block của package:
 
@@ -253,11 +276,11 @@ npm install --global agent-workspace-pipeline
 
 Hoặc pin dependency của team bằng npm install --save-dev agent-workspace-pipeline@0.2.0 rồi dùng npx agent-workspace. **Tên package là agent-workspace-pipeline; binary là agent-workspace.** Không chạy npx agent-workspace trong project chưa cài dependency này: tên đó trên npm thuộc một dự án khác.
 
-Đường dẫn native được đối chiếu với docs của [Codex](https://learn.chatgpt.com/docs/build-skills), [Claude Code](https://code.claude.com/docs/en/skills), [Gemini](https://geminicli.com/docs/cli/using-agent-skills/) và [Antigravity](https://antigravity.google/docs/skills). Package cài quy trình, instructions và skills; các executable, MCP/providers, account và model settings do harness/team cấu hình.
+Cơ chế instructions/skills của từng nền tảng được đối chiếu với [Codex](https://learn.chatgpt.com/docs/build-skills), [Claude Code](https://code.claude.com/docs/en/skills), [Gemini](https://geminicli.com/docs/cli/using-agent-skills/) và [Antigravity](https://antigravity.google/docs/skills). Theo lựa chọn folder chung của package, agent truy cập workflows qua instructions và CLI. Các executable, MCP/providers, account và model settings do harness/team cấu hình.
 
 ## 6. CRUD một Task Contract
 
-CRUD là Create / Read / Update / Delete: tạo, đọc, cập nhật và xóa khỏi danh sách hoạt động.
+Phần từ đây là **tài liệu thao tác cho agent và người cần inspect/debug**. Luồng chính vẫn là giao yêu cầu bằng chat; agent tự viết contract và chạy các lệnh. CRUD là Create / Read / Update / Delete: tạo, đọc, cập nhật và xóa khỏi danh sách hoạt động.
 
 ### Create: tạo task
 

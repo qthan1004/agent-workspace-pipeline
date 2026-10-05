@@ -7,9 +7,15 @@ The portable CLI invocation is {{CLI}}. Run it from the project root, followed b
 
 For read-only questions/research, resolve relevant context without creating an implementation task. For a request to plan or implement, resolve the pipeline workflow with 'skills show pipeline' using the invocation above. The agent operates the CLI; the user can send ordinary natural-language requests.
 
-Native skills named 'agent-workspace-pipeline', 'agent-workspace-analyze', 'agent-workspace-interview', 'agent-workspace-plan', 'agent-workspace-tdd', 'agent-workspace-review' and 'agent-workspace-wiki-maintenance' route to these workflows. Use 'skills show <name>' with the canonical name (without the 'agent-workspace-' prefix) to honor project-local overrides. The shared router is '.agent/ADAPTER.md'.
+All platforms use one project skills directory, '.agent/skills' by default (see 'skills.local' in the config). Resolve a workflow with 'skills show <name>' rather than another platform's similarly named skill. No platform-specific skill copies, links or slash-command registration are required. The shared router is '.agent/ADAPTER.md'.
+
+Available Agent Workspace workflows (read the selected workflow on demand):
+
+{{SKILLS}}
 
 Discuss meaningful unknowns with the human/strong layer, then compile one living Task Contract in '.agent/tasks/<id>.md'. Keep research ephemeral unless durable output was requested. Record approval only after the user's intent/approval actually authorizes its concrete semantics; 'task approve --by' records approval and does not obtain consent. Never ask again for approval already present in the conversation.
+
+Operate this workflow autonomously within the user's authorized scope: write and update the contract, resolve context, prepare, implement, capture artifacts and validate completion. Do not ask the user to type CLI commands, fill templates or approve routine mechanics. Ask only for consequential missing decisions or permissions not already granted. Read wiki paths from the config; a fresh project uses 'wiki/' and may choose '.wiki/'.
 
 Use 'prepare <id> --draft' while planning, and 'prepare <id>' after approval, both with the portable invocation above. Load all mandatory/matched rules and the resolved skills/wiki. Read the global paths from '.agent/workspace.yaml'; default '~' paths belong to the current user. If the global workspace has not been initialized on this machine, run 'setup' with the same invocation first.
 

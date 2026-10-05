@@ -17,9 +17,10 @@ async function command(...args) {
 }
 const initialized = await command('init');
 assert.deepEqual(initialized.repo.platforms, ['codex', 'claude', 'gemini', 'antigravity']);
-assert.equal(initialized.repo.native_skills.created, 21);
+assert.equal(initialized.repo.skills.created, 7);
 assert.ok((await fs.readFile(path.join(repo, '.agent/.gitignore'), 'utf8')).includes('evidence/'));
-for (const directory of ['.agents/skills', '.claude/skills', '.gemini/skills']) assert.ok((await fs.readFile(path.join(repo, directory, 'agent-workspace-pipeline/SKILL.md'), 'utf8')).includes('skills show pipeline'));
+assert.ok((await fs.readFile(path.join(repo, '.agent/skills/pipeline/SKILL.md'), 'utf8')).includes('The agent operates the workflow and CLI.'));
+assert.ok((await fs.readFile(path.join(repo, 'wiki/INDEX.md'), 'utf8')).includes('Project wiki'));
 assert.equal((await command('doctor')).ok, true);
 await fs.copyFile(path.join(packed, 'examples/task.md'), path.join(repo, '.agent/tasks/DEMO-1.md'));
 await command('task', 'validate', 'DEMO-1', '--draft');
@@ -48,4 +49,4 @@ await fs.writeFile(path.join(repo, '.agent/evidence/DEMO-1/review.txt'), 'Synthe
 await command('review', 'record', 'DEMO-1', '--by', 'synthetic-review-fixture', '--artifact', '.agent/evidence/DEMO-1/review.txt', '--result', 'passed', '--source-digest', review.source_digest, '--contract-sha256', review.contract_sha256);
 assert.equal((await command('evidence', 'validate', 'DEMO-1')).valid, true);
 assert.equal((await command('task', 'finish', 'DEMO-1')).status, 'done');
-console.log('Installed tarball: four native integrations, shared router, seven skills, real demo tests, receipt/review IO and completion gate passed.\nFixture: ' + directory);
+console.log('Installed tarball: four platform routers, one shared skills folder, separate wiki, real demo tests, receipt/review IO and completion gate passed.\nFixture: ' + directory);

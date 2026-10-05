@@ -12,10 +12,11 @@ export const help = [
   '  npm install --global agent-workspace-pipeline',
   '  init [--with codex,claude,gemini,antigravity|all] [--refresh] [--distribution npm|github]',
   '       default: all four platforms; --repo <dir> and --home <dir> are optional',
+  '       --wiki-dir <dir> selects wiki/ or .wiki/ for a new project (default: wiki)',
   '  setup [--home <dir>]  (initialize shared rules/skills only)',
   '  bootstrap (alias for init)',
   '  repo init | repo inspect',
-  '  adapter install --with <platforms> [--refresh]  (add native skills and instructions)',
+  '  adapter install --with <platforms> [--refresh]  (route platforms to shared skills)',
   '  doctor',
   '',
   'Tasks:',
@@ -46,7 +47,7 @@ export const help = [
   'Use --file <repo-relative-receipt.json> for an alternate evidence receipt.',
   'See README.md for approval, CRUD, artifacts and troubleshooting examples.'
 ].join('\n');
-const stringFlags = ['repo', 'home', 'with', 'format', 'name', 'by', 'from', 'file', 'kind', 'artifact', 'description', 'result', 'entry', 'provider', 'symbol', 'references', 'inspected', 'reason', 'proposed-change', 'type', 'task', 'category', 'source-digest', 'contract-sha256', 'distribution'];
+const stringFlags = ['repo', 'home', 'format', 'name', 'by', 'from', 'file', 'kind', 'artifact', 'description', 'result', 'entry', 'provider', 'symbol', 'references', 'inspected', 'reason', 'proposed-change', 'type', 'task', 'category', 'source-digest', 'contract-sha256', 'distribution', 'wiki-dir'];
 const repeatFlags = ['with', 'path', 'symbol', 'tag', 'skill', 'evidence'];
 const booleanFlags = ['help', 'version', 'json', 'draft', 'dry-run', 'maintenance', 'brief', 'refresh'];
 const flags = Object.fromEntries([
@@ -57,8 +58,8 @@ const flags = Object.fromEntries([
 flags.help.short = 'h';
 const common = ['repo', 'home', 'json'];
 const allowed = {
-  bootstrap: ['with', 'name', 'distribution', 'refresh'], init: ['with', 'name', 'distribution', 'refresh'], setup: [], doctor: [],
-  'repo init': ['with', 'name', 'distribution', 'refresh'], 'repo inspect': [], 'adapter install': ['with', 'refresh'],
+  bootstrap: ['with', 'name', 'distribution', 'refresh', 'wiki-dir'], init: ['with', 'name', 'distribution', 'refresh', 'wiki-dir'], setup: [], doctor: [],
+  'repo init': ['with', 'name', 'distribution', 'refresh', 'wiki-dir'], 'repo inspect': [], 'adapter install': ['with', 'refresh'],
   'task new': [], 'task list': [], 'task show': [], 'task validate': ['draft'], 'task approve': ['by'],
   'task update': ['from'], 'task delete': [], 'task finish': ['file'],
   prepare: ['draft', 'format', 'with', 'brief'], run: ['with', 'dry-run'],
@@ -92,7 +93,7 @@ export async function main(argv) {
     const noTarget = ['bootstrap', 'init', 'setup', 'doctor', 'repo init', 'repo inspect', 'adapter install', 'task list', 'rules list', 'wiki list', 'wiki check-stale', 'skills list', 'learn collect', 'learn propose'];
     if (noTarget.includes(command) && positional.length || !noTarget.includes(command) && !positional.length || !queryCommands.includes(command) && positional.length > 1) fail('INVALID_ARGUMENTS', 'Unexpected/missing arguments for ' + command + '. Run --help.');
     const target = queryCommands.includes(command) ? positional.join(' ') : positional[0];
-    const options = { ...values, dryRun: values['dry-run'], proposedChange: values['proposed-change'], sourceDigest: values['source-digest'], contractSha256: values['contract-sha256'], paths: values.path, symbols: values.symbol, tags: values.tag, skills: values.skill };
+    const options = { ...values, wikiDir: values['wiki-dir'], dryRun: values['dry-run'], proposedChange: values['proposed-change'], sourceDigest: values['source-digest'], contractSha256: values['contract-sha256'], paths: values.path, symbols: values.symbol, tags: values.tag, skills: values.skill };
     if (['run', 'prepare'].includes(command) && values.with) {
       if (values.with.length !== 1 || values.with[0].includes(',')) fail('INVALID_OPTION', command + ' executes/prepares one harness; use a single --with value.');
       options.with = values.with[0];
