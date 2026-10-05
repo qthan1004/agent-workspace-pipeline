@@ -7,19 +7,20 @@ import { loadWorkspace } from './workspace.js';
 
 export const help = [
   'Agent Workspace — strong-model task/plan pipeline (Node.js 22+)',
+  'After init, users converse with their agent or supply a plan. The agent manages task records and CLI operations.',
   '',
   'One-time setup:',
-  '  npm install --global agent-workspace-pipeline',
+  '  See README.md for the current npm/npx installation command.',
   '  init [--with codex,claude,gemini,antigravity|all] [--refresh] [--distribution npm|github]',
   '       default: all four platforms; --repo <dir> and --home <dir> are optional',
   '       --wiki-dir <dir> selects wiki/ or .wiki/ for a new project (default: wiki)',
-  '  setup [--home <dir>]  (initialize shared rules/skills only)',
+  '  setup [--home <dir>]  (initialize shared rules, skills, handbook and examples)',
   '  bootstrap (alias for init)',
   '  repo init | repo inspect',
   '  adapter install --with <platforms> [--refresh]  (route platforms to shared skills)',
   '  doctor',
   '',
-  'Tasks:',
+  'Agent internals — tasks:',
   '  task new | show | validate | approve | update | delete | finish <id>',
   '  task list',
   '  task approve <id> --by <authority>',
@@ -27,7 +28,7 @@ export const help = [
   '  prepare <id> [--draft] [--format <harness>] [--brief]',
   '  run <id> --with <harness> [--dry-run]',
   '',
-  'Knowledge:',
+  'Agent/maintainer internals — knowledge:',
   '  rules list | resolve <query> | show <id>',
   '  rules new | update | delete <id> --maintenance --by <maintainer>',
   '  wiki list | resolve <query> | show <id> | check-stale',
@@ -35,7 +36,7 @@ export const help = [
   '  rules|wiki request-fix <id-or-path> --reason <text> --evidence <file> --proposed-change <text>',
   '  skills list | show <name> | resolve <query>',
   '',
-  'Evidence / fresh review:',
+  'Agent internals — evidence / fresh review:',
   '  evidence init | snapshot | changes | record | validate <id>',
   '  evidence record <id> --kind E1..E5 --artifact <file> --description <text> --result passed',
   '  review prepare <id>',
@@ -45,7 +46,7 @@ export const help = [
   '',
   'All commands accept --repo, --home, --json. Repeat --path/--symbol/--tag/--skill for routing.',
   'Use --file <repo-relative-receipt.json> for an alternate evidence receipt.',
-  'See README.md for approval, CRUD, artifacts and troubleshooting examples.'
+  'See README.md for conversational usage; docs/agent-operations.md covers internal CRUD, artifacts and troubleshooting.'
 ].join('\n');
 const stringFlags = ['repo', 'home', 'format', 'name', 'by', 'from', 'file', 'kind', 'artifact', 'description', 'result', 'entry', 'provider', 'symbol', 'references', 'inspected', 'reason', 'proposed-change', 'type', 'task', 'category', 'source-digest', 'contract-sha256', 'distribution', 'wiki-dir'];
 const repeatFlags = ['with', 'path', 'symbol', 'tag', 'skill', 'evidence'];

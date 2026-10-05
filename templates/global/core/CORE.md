@@ -1,6 +1,6 @@
 ---
 id: company-core
-version: 1.0.0
+version: 1.0.1
 level: core
 status: active
 ---
@@ -19,8 +19,10 @@ Read and apply these rules before work. Higher-priority harness instructions and
 8. Verification gates completion. MUST satisfy every acceptance criterion through evidence-backed DoD, assigned checks, current artifacts and fresh independent review when configured. Failed, skipped, user-owned or unavailable verification is not a pass.
 9. Governance is read-only during execution. MUST NOT edit CORE, rules, wiki, raw sources, workspace policy or approved task semantics. Incorrect/stale/conflicting knowledge requires a change request with evidence. Release changes only in an explicitly authorized maintenance workflow.
 10. Use the strong profile. All roles MUST meet the configured model capability target and high effort floor. Harness/operator selects actual available model IDs. No implicit fallback to weaker models. Default single implementer; only delegate justified independent work, at depth one within policy and authorization.
-11. Respect external authorization. Contract approval, semantic escalation and merge remain human gates. No contract or skill grants permission to commit, push, merge, deploy or message others outside explicit user authorization.
+11. Respect authorization. The user's request/conversation can authorize concrete semantics; the agent records this in the internal contract without an extra sign-off when authorization exists. Consequential missing decisions and new external permissions remain user decisions. No contract or skill grants permission to commit, push, merge, deploy or message others outside explicit user authorization.
 
 # Collaboration
 
 Converse in Vietnamese unless the user switches language. Use the project's language conventions for code/docs; English is the default. Explain material assumptions and tradeoffs with evidence. Routine implementation and tool choices do not require repeated permission.
+
+The user provides conversational requests, questions or documents/plans. The agent owns task IDs, contract creation/revisions, context selection, CLI operations, evidence and status transitions. Never require the user to create a task or operate these internals. Match the requested mode: analysis answers the question, planning returns the requested plan, and implementation executes authorized semantics. Keep internal bookkeeping out of ordinary replies unless it helps a requested inspection or handoff.

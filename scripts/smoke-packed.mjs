@@ -19,7 +19,11 @@ const initialized = await command('init');
 assert.deepEqual(initialized.repo.platforms, ['codex', 'claude', 'gemini', 'antigravity']);
 assert.equal(initialized.repo.skills.created, 7);
 assert.ok((await fs.readFile(path.join(repo, '.agent/.gitignore'), 'utf8')).includes('evidence/'));
-assert.ok((await fs.readFile(path.join(repo, '.agent/skills/pipeline/SKILL.md'), 'utf8')).includes('The agent operates the workflow and CLI.'));
+assert.equal(await command('skills', 'show', 'pipeline'), await fs.readFile(path.join(repo, '.agent/skills/pipeline/SKILL.md'), 'utf8'));
+assert.equal(await fs.readFile(path.join(home, 'handbook/agent-operations.md'), 'utf8'), await fs.readFile(path.join(packed, 'docs/agent-operations.md'), 'utf8'));
+for (const example of ['task.md', 'api-rule.md', 'demo/greet.mjs', 'demo/greet.test.mjs']) {
+  assert.equal(await fs.readFile(path.join(home, 'examples', example), 'utf8'), await fs.readFile(path.join(packed, 'examples', example), 'utf8'));
+}
 assert.ok((await fs.readFile(path.join(repo, 'wiki/INDEX.md'), 'utf8')).includes('Project wiki'));
 assert.equal((await command('doctor')).ok, true);
 await fs.copyFile(path.join(packed, 'examples/task.md'), path.join(repo, '.agent/tasks/DEMO-1.md'));

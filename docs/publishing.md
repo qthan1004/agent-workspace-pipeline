@@ -22,7 +22,7 @@ Từ thư mục source chứa package.json:
 npm ci
 npm run release:check
 npm pack
-npm install --prefix .test-artifacts/packed-install --ignore-scripts --no-audit --no-fund ./agent-workspace-pipeline-0.2.0.tgz
+npm install --prefix .test-artifacts/packed-install --ignore-scripts --no-audit --no-fund ./agent-workspace-pipeline-0.2.1.tgz
 npm run smoke:packed
 npm run smoke:registry
 ~~~
@@ -38,13 +38,13 @@ smoke:registry phục vụ **registry thử trên loopback** và tarball hiện 
 GitHub Release lưu đúng tarball npm; user cài bằng URL HTTPS public, không cần clone source. Sau khi kiểm thử, commit/push source và tạo release kèm tarball:
 
 ~~~powershell
-gh release create v0.2.0 ./agent-workspace-pipeline-0.2.0.tgz --repo qthan1004/agent-workspace-pipeline --target main --title "Agent Workspace Pipeline 0.2.0" --notes-file CHANGELOG.md
+gh release create v0.2.1 ./agent-workspace-pipeline-0.2.1.tgz --repo qthan1004/agent-workspace-pipeline --target main --title "Agent Workspace Pipeline 0.2.1" --notes-file CHANGELOG.md
 ~~~
 
 Lệnh user:
 
 ~~~powershell
-npx --yes https://github.com/qthan1004/agent-workspace-pipeline/releases/download/v0.2.0/agent-workspace-pipeline-0.2.0.tgz init --with codex,claude --distribution github
+npx --yes https://github.com/qthan1004/agent-workspace-pipeline/releases/download/v0.2.1/agent-workspace-pipeline-0.2.1.tgz init --with codex,claude --distribution github
 ~~~
 
 Kênh github được lưu trong workspace config. Router dùng URL release của cùng version, nên không phụ thuộc npm account hay local path. Kênh npm mặc định dùng package name/version trên registry; khi chuyển kênh, maintainer đổi cli.distribution và refresh adapter.
@@ -70,8 +70,8 @@ npm view agent-workspace-pipeline version --registry https://registry.npmjs.org/
 Kiểm tra từ một project mới bằng lệnh user sẽ dùng:
 
 ~~~powershell
-npx --yes --package agent-workspace-pipeline@0.2.0 agent-workspace init --with codex,claude
-npx --yes --package agent-workspace-pipeline@0.2.0 agent-workspace doctor
+npx --yes --package agent-workspace-pipeline@0.2.1 agent-workspace init --with codex,claude
+npx --yes --package agent-workspace-pipeline@0.2.1 agent-workspace doctor
 ~~~
 
 User sau đó cài global bằng npm install --global agent-workspace-pipeline hoặc dùng npx như README. Không cần tarball hay path trên máy maintainer.

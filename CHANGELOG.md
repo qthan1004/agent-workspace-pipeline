@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+- Make conversation, questions and supplied Markdown plans the user interface; agents own task IDs, contracts, CLI operations, evidence and status transitions.
+- Reuse relevant tasks for follow-ups, preserve original plan documents, and record authorization already supplied by implementation requests without extra contract sign-offs.
+- Keep analysis and planning within the requested scope; receiving a document alone does not authorize implementation.
+- Focus onboarding on installation, available workflows and ordinary conversation examples; move detailed CRUD procedures to an agent operations handbook.
+- Install the handbook and its examples into the shared home so agents can consult them without cloning package source.
+
 ## 0.2.0
 
 - Init installs Codex, Claude, Gemini and Antigravity instruction routers together by default; choose a subset with CSV or repeated --with flags.

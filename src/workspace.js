@@ -18,6 +18,8 @@ async function assertInstallable(repo) {
 export async function initGlobal(options = {}) {
   const home = homeDirectory(options.home);
   const files = await copyTemplates(path.join(packageRoot, 'templates/global'), home);
+  files.push(await writeNew(home, 'handbook/agent-operations.md', await fs.readFile(path.join(packageRoot, 'docs/agent-operations.md'), 'utf8')));
+  files.push(...await copyTemplates(path.join(packageRoot, 'examples'), path.join(home, 'examples')));
   return { home, created: files.filter((f) => f.created).length, preserved: files.filter((f) => !f.created).length };
 }
 export async function findRepo(start) {
