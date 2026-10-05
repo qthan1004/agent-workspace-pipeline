@@ -1,4 +1,4 @@
-export { bootstrap, initGlobal, initRepo, installAdapter, loadWorkspace } from './workspace.js';
+export { bootstrap, initGlobal, initRepo, installAdapter, installAdapters, selectHarnesses, loadWorkspace } from './workspace.js';
 export { newTask, validateTask, approveTask, contractHash } from './tasks.js';
 export { prepare } from './prepare.js';
 export { runTask } from './run.js';

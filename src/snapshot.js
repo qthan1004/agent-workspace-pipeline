@@ -43,7 +43,8 @@ export async function governanceSnapshot(workspace) {
   const single = [workspace.globalCore, workspace.repoCore, workspace.wikiMap, workspace.wikiIndex, path.join(workspace.repo, '.agent/workspace.yaml'), ...['AGENTS.md', 'CLAUDE.md', 'GEMINI.md', '.agent/ADAPTER.md'].map((name) => path.join(workspace.repo, name))];
   const directories = [
     path.join(workspace.repo, '.agent/rules'), path.dirname(workspace.wikiMap), path.join(workspace.repo, '.agent/raw'),
-    workspace.globalSkills, workspace.localSkills, path.join(workspace.home, 'profiles'), path.join(workspace.home, 'config')
+    workspace.globalSkills, workspace.localSkills, path.join(workspace.home, 'profiles'), path.join(workspace.home, 'config'),
+    ...['.agents/skills', '.agents/rules', '.claude/skills', '.gemini/skills'].map((directory) => path.join(workspace.repo, directory))
   ];
   for (const directory of directories) for (const file of await walk(directory)) single.push(file);
   for (const file of [...new Set(single)].sort()) {

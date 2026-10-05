@@ -1,17 +1,49 @@
 {
   "name": "agent-workspace-pipeline",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Portable rules, skills, task contracts and evidence gates for existing agent harnesses",
   "type": "module",
-  "bin": { "agent-workspace": "bin/agent-workspace.js" },
+  "bin": {
+    "agent-workspace": "bin/agent-workspace.js"
+  },
   "exports": "./src/index.js",
-  "files": ["bin", "src", "templates", "schemas", "docs", "examples", "README.md", "CHANGELOG.md", "LICENSE"],
-  "engines": { "node": ">=22" },
-  "keywords": ["agent", "workspace", "coding", "pipeline", "task-contract", "evidence", "codex", "claude", "gemini"],
-  "repository": { "type": "git", "url": "git+https://github.com/qthan1004/agent-workspace-pipeline.git" },
+  "files": [
+    "bin",
+    "src",
+    "templates",
+    "schemas",
+    "docs",
+    "examples",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "agent",
+    "workspace",
+    "coding",
+    "pipeline",
+    "task-contract",
+    "evidence",
+    "codex",
+    "claude",
+    "gemini"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qthan1004/agent-workspace-pipeline.git"
+  },
   "homepage": "https://github.com/qthan1004/agent-workspace-pipeline#readme",
-  "bugs": { "url": "https://github.com/qthan1004/agent-workspace-pipeline/issues" },
-  "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/" },
+  "bugs": {
+    "url": "https://github.com/qthan1004/agent-workspace-pipeline/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "test": "node --test test/pipeline.test.js",
     "check": "node scripts/check.mjs",

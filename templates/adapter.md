@@ -5,7 +5,9 @@ This repository uses a portable semi-automated pipeline. Before work, read the g
 
 The portable CLI invocation is {{CLI}}. Run it from the project root, followed by the command and its arguments. This pins the package version and works on another machine without any path to the installer. A global 'agent-workspace' command is also usable when its version matches this router.
 
-For read-only questions/research, resolve relevant context without creating an implementation task. For a request to plan or implement, use the pipeline skill at the configured global skills path, 'pipeline/SKILL.md'. The agent operates the CLI; the user can send ordinary natural-language requests.
+For read-only questions/research, resolve relevant context without creating an implementation task. For a request to plan or implement, resolve the pipeline workflow with 'skills show pipeline' using the invocation above. The agent operates the CLI; the user can send ordinary natural-language requests.
+
+Native skills named 'agent-workspace-pipeline', 'agent-workspace-analyze', 'agent-workspace-interview', 'agent-workspace-plan', 'agent-workspace-tdd', 'agent-workspace-review' and 'agent-workspace-wiki-maintenance' route to these workflows. Use 'skills show <name>' with the canonical name (without the 'agent-workspace-' prefix) to honor project-local overrides. The shared router is '.agent/ADAPTER.md'.
 
 Discuss meaningful unknowns with the human/strong layer, then compile one living Task Contract in '.agent/tasks/<id>.md'. Keep research ephemeral unless durable output was requested. Record approval only after the user's intent/approval actually authorizes its concrete semantics; 'task approve --by' records approval and does not obtain consent. Never ask again for approval already present in the conversation.
 

@@ -19,4 +19,14 @@ Runtime command syntax was checked against primary documentation:
 - [YAML parser](https://eemeli.org/yaml/): YAML/frontmatter parsing.
 - [npm package fields](https://docs.npmjs.com/cli/v11/configuring-npm/package-json/): executable and publish files.
 
-Antigravity receives a workspace rule file under .agent/rules. Its rule activation must be checked in the user's IDE; no undocumented Antigravity CLI is invented. Generic adapters produce a Markdown brief. Third-party skill libraries can be installed by their authorized maintainer with their original resources and licenses, then selected lazily.
+Multi-platform initialization installs all four integrations by default or a selected subset. Seven namespaced native entrypoints forward to the canonical workflows through .agent/ADAPTER.md and skills show, honoring project-local overrides. Existing instructions receive one managed block; existing skills remain untouched.
+
+Native discovery paths were checked against primary documentation:
+
+- [Codex skills](https://learn.chatgpt.com/docs/build-skills): project .agents/skills plus AGENTS.md instructions.
+- [Claude skills](https://code.claude.com/docs/en/skills): project .claude/skills plus CLAUDE.md instructions.
+- [Gemini skills](https://geminicli.com/docs/cli/using-agent-skills/): project .gemini/skills, with .agents/skills also recognized.
+- [Antigravity skills](https://antigravity.google/docs/skills): project .agents/skills, with legacy .agent/skills supported.
+- [Antigravity rules](https://www.antigravity.google/docs/rules/): .agents/rules/*.md with trigger: always_on for the generated router; legacy .agent/rules remains supported and is preserved.
+
+Codex and Antigravity share .agents/skills without duplicate copies there. Gemini may also discover the shared aliases; no workspace config or trust setting is overwritten to alter its discovery. Generic adapters produce a Markdown brief. Third-party skill libraries can be installed by their authorized maintainer with their original resources and licenses, then selected lazily.

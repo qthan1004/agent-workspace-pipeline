@@ -7,7 +7,7 @@ import { stringify } from 'yaml';
 import * as api from '../src/index.js';
 import { exists, frontmatter, inside, markdown, readYaml, safePath } from '../src/io.js';
 import { readTask, sections } from '../src/tasks.js';
-import { sourceSnapshot } from '../src/snapshot.js';
+import { governanceSnapshot, sourceSnapshot } from '../src/snapshot.js';
 import { capture } from '../src/process.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -370,4 +370,109 @@ test('source fingerprint covers a workspace ignored by a parent Git repository',
   assert.ok(before.files['src/value.mjs']);
   await f.write('src/value.mjs', 'export const value = 2;\n');
   assert.notEqual((await sourceSnapshot(f.workspace)).digest, before.digest);
+});
+
+test('default init installs four native integrations and seven skills per discovery directory', async (t) => {
+  const f = await fixture(t);
+  for (const file of ['AGENTS.md', 'CLAUDE.md', 'GEMINI.md', '.agent/ADAPTER.md', '.agents/rules/agent-workspace.md']) assert.ok(await exists(path.join(f.options.repo, file)), file);
+  const skills = ['analyze', 'interview', 'pipeline', 'plan', 'review', 'tdd', 'wiki-maintenance'];
+  for (const directory of ['.agents/skills', '.claude/skills', '.gemini/skills']) {
+    assert.deepEqual((await fs.readdir(path.join(f.options.repo, directory))).sort(), skills.map((name) => 'agent-workspace-' + name));
+    for (const name of skills) {
+      const skill = frontmatter(await fs.readFile(path.join(f.options.repo, directory, 'agent-workspace-' + name, 'SKILL.md'), 'utf8'));
+      assert.equal(skill.metadata.name, 'agent-workspace-' + name);
+      assert.ok(skill.metadata.description.trim());
+      assert.ok(skill.body.includes('skills show ' + name));
+      assert.ok(skill.body.includes('.agent/ADAPTER.md'));
+    }
+  }
+  const rule = frontmatter(await fs.readFile(path.join(f.options.repo, '.agents/rules/agent-workspace.md'), 'utf8'));
+  assert.equal(rule.metadata.trigger, 'always_on');
+  const repeated = await api.bootstrap(f.options);
+  assert.deepEqual(repeated.repo.platforms, ['codex', 'claude', 'gemini', 'antigravity']);
+  assert.equal(repeated.repo.native_skills.created, 0);
+  assert.equal(repeated.repo.native_skills.preserved, 21);
+});
+
+test('selected platforms install additively and preserve native skills and instructions', async (t) => {
+  const f = await fixture(t);
+  const options = { ...f.options, repo: path.join(f.directory, 'selected-project'), with: 'codex,claude,codex' };
+  const first = await api.bootstrap(options);
+  assert.deepEqual(first.repo.platforms, ['codex', 'claude']);
+  assert.equal(first.repo.native_skills.created, 14);
+  assert.ok(!await exists(path.join(options.repo, 'GEMINI.md')));
+  assert.ok(!await exists(path.join(options.repo, '.gemini')));
+  assert.ok(!await exists(path.join(options.repo, '.agents/rules')));
+  const claude = path.join(options.repo, 'CLAUDE.md');
+  await fs.writeFile(claude, 'Custom Claude instruction.\n');
+  const native = path.join(options.repo, '.claude/skills/agent-workspace-plan/SKILL.md');
+  await fs.writeFile(native, 'Custom native skill: retain this content.\n');
+  const extra = await api.bootstrap({ ...options, with: ['claude', 'gemini'] });
+  assert.deepEqual(extra.repo.platforms, ['claude', 'gemini']);
+  assert.equal(extra.repo.native_skills.created, 7);
+  assert.equal(extra.repo.native_skills.preserved, 7);
+  assert.ok((await fs.readFile(claude, 'utf8')).startsWith('Custom Claude instruction.\n'));
+  assert.equal(await fs.readFile(native, 'utf8'), 'Custom native skill: retain this content.\n');
+  assert.ok(await exists(path.join(options.repo, 'AGENTS.md')));
+  assert.ok(await exists(path.join(options.repo, 'GEMINI.md')));
+  assert.equal((await api.skillInventory(await api.loadWorkspace(options))).length, 7);
+  const rule = path.join(options.repo, '.agents/rules/agent-workspace.md');
+  await fs.mkdir(path.dirname(rule), { recursive: true });
+  await fs.writeFile(rule, 'Custom Antigravity instruction.\n');
+  await api.installAdapters(options.repo, 'antigravity');
+  const merged = frontmatter(await fs.readFile(rule, 'utf8'));
+  assert.equal(merged.metadata.trigger, 'always_on');
+  assert.ok(merged.body.includes('Custom Antigravity instruction.\n'));
+});
+
+test('invalid platform selections and active executions fail before initialization writes', async (t) => {
+  const f = await fixture(t);
+  for (const value of ['codex,unknown', 'codex,', '', []]) {
+    const options = { repo: path.join(f.directory, 'invalid-project'), home: path.join(f.directory, 'invalid-home'), with: value };
+    await rejects(api.bootstrap(options), 'UNKNOWN_HARNESS');
+    assert.ok(!await exists(options.repo));
+    assert.ok(!await exists(options.home));
+  }
+  await f.write('.agent/execution.lock', '{"pid":123}');
+  const home = path.join(f.directory, 'blocked-home');
+  await rejects(api.bootstrap({ ...f.options, home, with: 'all' }), 'EXECUTION_ACTIVE');
+  assert.ok(!await exists(home));
+});
+
+test('native rules and skill mutations invalidate prepared governance', async (t) => {
+  const f = await fixture(t), id = await approved(f);
+  await api.prepare(id, f.options);
+  const before = await governanceSnapshot(f.workspace);
+  const relative = '.claude/skills/agent-workspace-tdd/SKILL.md';
+  assert.ok(before.files[path.join(f.options.repo, relative)]);
+  assert.ok(before.files[path.join(f.options.repo, '.agents/rules/agent-workspace.md')]);
+  await fs.appendFile(path.join(f.options.repo, relative), '\nUnexpected workflow mutation.\n');
+  await rejects(api.prepare(id, f.options), 'GOVERNANCE_CHANGED');
+});
+
+test('CLI accepts CSV and repeated init platforms, refreshes only managed blocks, and runs one harness', async (t) => {
+  const f = await fixture(t), cli = path.join(root, 'bin/agent-workspace.js');
+  const repo = path.join(f.directory, 'cli-multi');
+  const args = ['--repo', repo, '--home', f.options.home, '--json'];
+  const init = await capture(process.execPath, [cli, 'init', '--with', 'codex,claude', '--with', 'gemini', ...args], root);
+  assert.equal(init.code, 0, init.stderr);
+  assert.deepEqual(JSON.parse(init.stdout).repo.platforms, ['codex', 'claude', 'gemini']);
+  const old = 'Before.\n<!-- agent-workspace:start -->\nOld router.\n<!-- agent-workspace:end -->\nAfter.\n';
+  for (const file of ['AGENTS.md', 'CLAUDE.md']) await fs.writeFile(path.join(repo, file), old);
+  const refreshed = await capture(process.execPath, [cli, 'init', '--with', 'codex,claude', '--refresh', ...args], root);
+  assert.equal(refreshed.code, 0, refreshed.stderr);
+  for (const file of ['AGENTS.md', 'CLAUDE.md']) {
+    const content = await fs.readFile(path.join(repo, file), 'utf8');
+    assert.ok(content.startsWith('Before.\n'));
+    assert.ok(content.endsWith('\nAfter.\n'));
+    assert.ok(!content.includes('Old router.'));
+  }
+  const extra = await capture(process.execPath, [cli, 'adapter', 'install', '--with', 'all', ...args], root);
+  assert.equal(extra.code, 0, extra.stderr);
+  assert.equal(JSON.parse(extra.stdout).platforms.length, 4);
+  await approved(f, 'CLI-RUN');
+  const single = await capture(process.execPath, [cli, 'run', 'CLI-RUN', '--with', 'codex', '--dry-run', '--repo', f.options.repo, '--home', f.options.home, '--json'], root);
+  assert.equal(single.code, 0, single.stderr);
+  const multiple = await capture(process.execPath, [cli, 'run', 'NEW', '--with', 'codex,claude', '--dry-run', ...args], root);
+  assert.equal(JSON.parse(multiple.stderr).error, 'INVALID_OPTION');
 });

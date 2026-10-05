@@ -49,8 +49,9 @@ const home = path.join(directory, 'first-home'), freshHome = path.join(directory
 try {
   await fs.mkdir(repo);
   const prefix = ['--yes', '--package', specifier, 'agent-workspace'];
-  const initialized = JSON.parse(await run('npx', ['--yes', specifier, 'init', '--with', 'codex', '--json'], repo, cache, home));
+  const initialized = JSON.parse(await run('npx', ['--yes', specifier, 'init', '--json'], repo, cache, home));
   assert.equal(initialized.repo.repo, repo);
+  assert.equal(initialized.repo.native_skills.created, 21);
   const router = await fs.readFile(path.join(repo, 'AGENTS.md'), 'utf8');
   assert.ok(router.includes('npx --yes --package "' + specifier + '" agent-workspace'));
   assert.ok(!router.includes(root.replaceAll('\\', '/')));
@@ -66,7 +67,9 @@ try {
   assert.equal((await run(binary, ['--version'], copied, freshCache, freshHome)).trim(), identity.version);
   const urlRepo = path.join(directory, 'url-consumer');
   await fs.mkdir(urlRepo);
-  await run('npx', ['--yes', base + '/-/' + filename, 'init', '--with', 'gemini', '--distribution', 'github', '--json'], urlRepo, freshCache, freshHome);
+  const selected = JSON.parse(await run('npx', ['--yes', base + '/-/' + filename, 'init', '--with', 'gemini,claude', '--distribution', 'github', '--json'], urlRepo, freshCache, freshHome));
+  assert.deepEqual(selected.repo.platforms, ['gemini', 'claude']);
+  assert.ok(!await fs.stat(path.join(urlRepo, 'AGENTS.md')).catch(() => false));
   assert.ok((await fs.readFile(path.join(urlRepo, 'GEMINI.md'), 'utf8')).includes('https://github.com/qthan1004/agent-workspace-pipeline/releases/download/v' + identity.version));
   assert.ok(downloads >= 2, 'A separate npm cache must download the package independently.');
   console.log('Registry smoke passed: npm global install, npx init, copied workspace, fresh-cache download and doctor. Fixture: ' + directory);
